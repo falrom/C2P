@@ -1,7 +1,14 @@
+# IDEs and Editors
+.vscode/*
+.idea/*
+
+# Build Directories
+build/*
+
 # Prerequisites
 *.d
 
-# Compiled Object files
+# Compiled Object Files
 *.slo
 *.lo
 *.o
@@ -11,16 +18,16 @@
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
+# Compiled Dynamic Libraries
 *.so
 *.dylib
 *.dll
 
-# Fortran module files
+# Fortran Module Files
 *.mod
 *.smod
 
-# Compiled Static libraries
+# Compiled Static Libraries
 *.lai
 *.la
 *.a
