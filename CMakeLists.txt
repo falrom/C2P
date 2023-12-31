@@ -1,0 +1,117 @@
+cmake_minimum_required( VERSION 3.20 )
+
+if( "${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}" )
+    message( FATAL_ERROR ">>> [ERRO] In-source builds are not allowed. You should create a separate directory for build files." )
+endif()
+
+project( C2P )
+
+
+# ============================================================
+# build options:
+# ============================================================
+
+# for C++ develop tools:
+set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
+
+# TODO: Add other build options here.
+
+
+# ============================================================
+# project version cmake vars define:
+# ============================================================
+
+# git version tag:
+execute_process(
+    COMMAND git describe --always --tags --abbrev=8 --match "v[0-9].[0-9].[0-9]"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE PROJECT_GIT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# git branch name:
+execute_process(
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE PROJECT_GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# cmake config time:
+string( TIMESTAMP PROJECT_CMAKE_TIME "%Y%m%d-%H:%M:%S" )
+
+
+# ============================================================
+# add targets:
+# ============================================================
+
+set( PROJECT_TARGETS "" )
+
+# target: lib c2p
+add_library( c2p
+    src/config.cpp
+    src/param.cpp
+)
+list( APPEND PROJECT_TARGETS c2p )
+target_include_directories( c2p PUBLIC include )
+target_include_directories( c2p PRIVATE src )
+
+# version and build info:
+if( PROJECT_GIT_VERSION )
+    target_compile_definitions( c2p PRIVATE PROJECT_GIT_VERSION="${PROJECT_GIT_VERSION}" )
+endif()
+if( PROJECT_GIT_BRANCH )
+    target_compile_definitions( c2p PRIVATE PROJECT_GIT_BRANCH="${PROJECT_GIT_BRANCH}" )
+endif()
+if( PROJECT_CMAKE_TIME )
+    target_compile_definitions( c2p PRIVATE PROJECT_CMAKE_TIME="${PROJECT_CMAKE_TIME}" )
+endif()
+
+# target: exe example
+add_executable( example example/example.cpp )
+list( APPEND PROJECT_TARGETS example )
+target_link_libraries( example PRIVATE c2p )
+
+
+# ============================================================
+# print info:
+# ============================================================
+
+# compiler flags:
+message( STATUS ">>> ----------------------------------------" )
+message( STATUS ">>> [INFO] compiler flags:" )
+message( STATUS ">>>        CMAKE_BUILD_TYPE         : ${CMAKE_BUILD_TYPE}" )
+message( STATUS ">>>        CMAKE_CONFIGURATION_TYPES: ${CMAKE_CONFIGURATION_TYPES}" )
+message( STATUS ">>>        CMAKE_C_FLAGS            : ${CMAKE_C_FLAGS}"    )
+message( STATUS ">>>        CMAKE_CXX_FLAGS          : ${CMAKE_CXX_FLAGS}"  )
+
+# project version:
+message( STATUS ">>> ----------------------------------------" )
+message( STATUS ">>> [INFO] project: ${PROJECT_NAME}" )
+if( PROJECT_GIT_VERSION )
+    message( STATUS ">>> [INFO] version: ${PROJECT_GIT_VERSION}" )
+endif()
+if( PROJECT_GIT_BRANCH )
+    message( STATUS ">>> [INFO] branch: ${PROJECT_GIT_BRANCH}" )
+endif()
+if( PROJECT_CMAKE_TIME )
+    message( STATUS ">>> [INFO] cmake time: ${PROJECT_CMAKE_TIME}" )
+endif()
+
+# targets:
+message( STATUS ">>> [INFO] targets: ")
+foreach( TARGET ${PROJECT_TARGETS} )
+    message( STATUS ">>>        * ${TARGET}" )
+endforeach()
+
+# # build options:
+# message( STATUS ">>> [INFO] build options: ")
+# message( STATUS ">>>        WITH_LIDAR          : ${WITH_LIDAR}"          )
+# message( STATUS ">>>        WITH_STEREO_CAMERAS : ${WITH_STEREO_CAMERAS}" )
+# message( STATUS ">>>        LIDAR_BACKEND       : ${LIDAR_BACKEND}"       )
+# message( STATUS ">>>        SC_BACKEND          : ${SC_BACKEND}"          )
+# message( STATUS ">>>        CAM_BACKEND         : ${CAM_BACKEND}"         )
+
+# TODO: Add more CMake log print here.
+
+message( STATUS ">>> ----------------------------------------" )
