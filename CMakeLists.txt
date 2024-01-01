@@ -11,6 +11,10 @@ project( C2P )
 # build options:
 # ============================================================
 
+# specify the C++ standard
+set( CMAKE_CXX_STANDARD 17 )
+set( CMAKE_CXX_STANDARD_REQUIRED True )
+
 # for C++ develop tools:
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
@@ -99,6 +103,7 @@ if( PROJECT_CMAKE_TIME )
 endif()
 
 # targets:
+message( STATUS ">>> ----------------------------------------" )
 message( STATUS ">>> [INFO] targets: ")
 foreach( TARGET ${PROJECT_TARGETS} )
     message( STATUS ">>>        * ${TARGET}" )
