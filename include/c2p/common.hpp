@@ -12,9 +12,22 @@
 namespace c2p {
 
 struct Logger {
-    std::function<void(const std::string&)> logErrorCallback;
-    std::function<void(const std::string&)> logWarningCallback;
-    std::function<void(const std::string&)> logInfoCallback;
+
+    using LogCallback = std::function<void(const std::string& logStr)>;
+
+    LogCallback logErrorCallback;
+    LogCallback logWarningCallback;
+    LogCallback logInfoCallback;
+
+    Logger(
+        LogCallback logErrorCallback = nullptr,
+        LogCallback logWarningCallback = nullptr,
+        LogCallback logInfoCallback = nullptr
+    )
+        : logErrorCallback(logErrorCallback),
+          logWarningCallback(logWarningCallback),
+          logInfoCallback(logInfoCallback) {}
+
     // clang-format off
     void logError  (const std::string& logStr) const { if (logErrorCallback  ) { logErrorCallback(logStr);   } }
     void logWarning(const std::string& logStr) const { if (logWarningCallback) { logWarningCallback(logStr); } }

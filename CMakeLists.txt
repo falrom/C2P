@@ -81,14 +81,6 @@ target_link_libraries( example PRIVATE c2p )
 # print info:
 # ============================================================
 
-# compiler flags:
-message( STATUS ">>> ----------------------------------------" )
-message( STATUS ">>> [INFO] compiler flags:" )
-message( STATUS ">>>        CMAKE_BUILD_TYPE         : ${CMAKE_BUILD_TYPE}" )
-message( STATUS ">>>        CMAKE_CONFIGURATION_TYPES: ${CMAKE_CONFIGURATION_TYPES}" )
-message( STATUS ">>>        CMAKE_C_FLAGS            : ${CMAKE_C_FLAGS}"    )
-message( STATUS ">>>        CMAKE_CXX_FLAGS          : ${CMAKE_CXX_FLAGS}"  )
-
 # project version:
 message( STATUS ">>> ----------------------------------------" )
 message( STATUS ">>> [INFO] project: ${PROJECT_NAME}" )
@@ -104,18 +96,22 @@ endif()
 
 # targets:
 message( STATUS ">>> ----------------------------------------" )
-message( STATUS ">>> [INFO] targets: ")
+message( STATUS ">>> [INFO] targets:")
 foreach( TARGET ${PROJECT_TARGETS} )
     message( STATUS ">>>        * ${TARGET}" )
 endforeach()
 
-# # build options:
-# message( STATUS ">>> [INFO] build options: ")
-# message( STATUS ">>>        WITH_LIDAR          : ${WITH_LIDAR}"          )
-# message( STATUS ">>>        WITH_STEREO_CAMERAS : ${WITH_STEREO_CAMERAS}" )
-# message( STATUS ">>>        LIDAR_BACKEND       : ${LIDAR_BACKEND}"       )
-# message( STATUS ">>>        SC_BACKEND          : ${SC_BACKEND}"          )
-# message( STATUS ">>>        CAM_BACKEND         : ${CAM_BACKEND}"         )
+# compiler flags:
+message( STATUS ">>> ----------------------------------------" )
+message( STATUS ">>> [INFO] compiler flags:" )
+message( STATUS ">>>        CMAKE_BUILD_TYPE         : ${CMAKE_BUILD_TYPE}" )
+message( STATUS ">>>        CMAKE_CONFIGURATION_TYPES: ${CMAKE_CONFIGURATION_TYPES}" )
+message( STATUS ">>>        CMAKE_C_FLAGS            : ${CMAKE_C_FLAGS}" )
+message( STATUS ">>>        CMAKE_CXX_FLAGS          : ${CMAKE_CXX_FLAGS}" )
+
+# build options:
+message( STATUS ">>> [INFO] build options:")
+message( STATUS ">>>        BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 
 # TODO: Add more CMake log print here.
 

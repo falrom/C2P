@@ -9,19 +9,24 @@
 
 namespace c2p {
 
+/// Apply all rules in order to transform config into param.
 inline bool doTransform(
-    const Config&            config,
-    Param&                   param,
+    const Config& config,
+    Param& param,
     const std::vector<Rule>& rules,
-    const Logger&            logger = Logger()
+    const Logger& logger = Logger()
 ) {
     for (const auto& rule: rules) {
         if (!rule.transform) {
-            logger.logWarning("Got an empty rule: " + rule.description);
+            logger.logWarning(
+                "Empty rule with description: \"" + rule.description + "\""
+            );
             continue;
         }
         if (!rule.transform(config, param, logger)) {
-            logger.logError("Rule transform failed: " + rule.description);
+            logger.logError(
+                "Rule failed with description: \"" + rule.description + "\""
+            );
             return false;
         }
     }

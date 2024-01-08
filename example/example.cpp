@@ -1,49 +1,78 @@
 #include <c2p/c2p.hpp>
 #include <iostream>
+#include <optional>
 #include <vector>
 
 struct MyConfig: public c2p::Config {
-    int         ca;
-    double      cb;
-    std::string cc;
+    std::optional<double> cA;
+    std::optional<double> cB;
+    std::optional<std::string> cC;
 };
 
 struct MyParam: public c2p::Param {
-    double      pa;
-    double      pb;
-    std::string pc;
+    int pAxB;
+    std::string pC;
+};
+
+const c2p::Logger logger{
+    // clang-format off
+    [](const std::string& logStr) { std::cerr << "Error: "   << logStr << std::endl; },
+    [](const std::string& logStr) { std::cout << "Warning: " << logStr << std::endl; },
+    [](const std::string& logStr) { std::cout << "Info: "    << logStr << std::endl; },
+    // clang-format on
 };
 
 int main(int argc, char* argv[]) {
 
-    MyConfig config;
-    config.ca = 10;
-    config.cb = 1.0;
-    config.cc = "2.0";
+    MyConfig myConfig;
+    MyParam myParam;
 
-    MyParam param;
+    myConfig.cA = 10.0;
+    myConfig.cB = 3.3;
+    myConfig.cC = "thisIsAnEmail@test.com";
 
-    auto rule1 = c2p::Rule{};
-    rule1.description = "Check ca, should be 0.",
-    rule1.transform = [](auto config, auto param, auto logger) {
-        const auto& myConfig = static_cast<const MyConfig&>(config);
-        return myConfig.ca == 0;
+    const auto rule1 = c2p::Rule{
+        .description = "pAxB = cA times cB as int.",
+        .transform =
+            [](auto& config, auto& param, auto& logger) {
+                const auto& myConfig = static_cast<const MyConfig&>(config);
+                auto& myParam = static_cast<MyParam&>(param);
+                if (!myConfig.cA) {
+                    logger.logError("cA was not set.");
+                    return false;
+                }
+                if (!myConfig.cB) {
+                    logger.logError("cB was not set.");
+                    return false;
+                }
+                myParam.pAxB = int((*myConfig.cA) * (*myConfig.cB));
+                return true;
+            },
     };
 
-    c2p::Logger logger;
-    logger.logErrorCallback = [](const std::string& logStr) {
-        std::cerr << "Error: " << logStr << std::endl;
-    };
-    logger.logWarningCallback = [](const std::string& logStr) {
-        std::cout << "Warning: " << logStr << std::endl;
-    };
-    logger.logInfoCallback = [](const std::string& logStr) {
-        std::cout << "Info: " << logStr << std::endl;
+    const auto rule2 = c2p::Rule{
+        .description = "cC must not be empty.",
+        .transform =
+            [](auto& config, auto& param, auto& logger) {
+                const auto& myConfig = static_cast<const MyConfig&>(config);
+                auto& myParam = static_cast<MyParam&>(param);
+                if (!myConfig.cC) {
+                    logger.logError("cC was not set.");
+                    return false;
+                }
+                if ((*myConfig.cC).empty()) {
+                    logger.logError("cC was empty.");
+                    return false;
+                }
+                myParam.pC = *myConfig.cC;
+                return true;
+            },
     };
 
-    if (c2p::doTransform(config, param, { rule1 }, logger)) {
-        return 0;
+    if (c2p::doTransform(myConfig, myParam, { rule1, rule2 }, logger)) {
+        std::cout << "Transformed successfully." << std::endl;
+        return EXIT_SUCCESS;
     } else {
-        return 1;
+        return EXIT_FAILURE;
     }
 }

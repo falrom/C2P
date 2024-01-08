@@ -22,15 +22,20 @@ namespace c2p {
 /// without changing param. Returns false if config fails the check.
 struct Rule {
 
-    /// Add your description of this rule here.
-    std::string description;
-
-    /// Will call this function to transform something from config to param.
+    /// To complete the partial transformation from config to param.
     /// @param[in] config The config to transform.
     /// @param[out] param The param to transform to.
     /// @param logger The log tool callbacks.
     /// @return True if the transformation was successful, false otherwise.
-    std::function<bool(const Config&, Param&, const Logger&)> transform;
+    using TransformCallback = std::function<
+        bool(const Config& config, Param& param, const Logger& logger)>;
+
+    /// Add your description of this rule here.
+    std::string description;
+
+    /// Will call this function to complete the partial transformation from
+    /// config to param. See more details in @ref TransformCallback.
+    TransformCallback transform;
 };
 
 }  // namespace c2p

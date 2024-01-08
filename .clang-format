@@ -17,7 +17,7 @@ AlignConsecutiveBitFields:
   AlignCompound: true
   PadOperators: false
 AlignConsecutiveDeclarations:
-  Enabled: true
+  Enabled: false
   AcrossEmptyLines: false
   AcrossComments: false
   AlignCompound: true
@@ -29,7 +29,7 @@ AlignConsecutiveMacros:
   AlignCompound: true
   PadOperators: false
 AlignEscapedNewlines: Right
-AlignOperands: DontAlign
+AlignOperands: AlignAfterOperator
 AlignTrailingComments:
   Kind: Always
   OverEmptyLines: 0
@@ -77,7 +77,7 @@ BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeBraces: Custom
 BreakBeforeConceptDeclarations: Always
 BreakBeforeInlineASMColon: OnlyMultiline
-BreakBeforeTernaryOperators: false
+BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: AfterColon
 BreakStringLiterals: true
