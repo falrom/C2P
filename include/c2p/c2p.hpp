@@ -9,7 +9,7 @@
 
 namespace c2p {
 
-/// Apply all rules in order to transform config into param.
+/// Transform config into param by applying all rules in order.
 inline bool doTransform(
     const Config& config,
     Param& param,

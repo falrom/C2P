@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         .description = "pAxB = cA times cB as int.",
         .transform =
             [](auto& config, auto& param, auto& logger) {
-                const auto& myConfig = static_cast<const MyConfig&>(config);
+                auto& myConfig = static_cast<const MyConfig&>(config);
                 auto& myParam = static_cast<MyParam&>(param);
                 if (!myConfig.cA) {
                     logger.logError("cA was not set.");
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
         .description = "cC must not be empty.",
         .transform =
             [](auto& config, auto& param, auto& logger) {
-                const auto& myConfig = static_cast<const MyConfig&>(config);
+                auto& myConfig = static_cast<const MyConfig&>(config);
                 auto& myParam = static_cast<MyParam&>(param);
                 if (!myConfig.cC) {
                     logger.logError("cC was not set.");
