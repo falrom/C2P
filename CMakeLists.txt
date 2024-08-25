@@ -55,6 +55,7 @@ set( PROJECT_TARGETS "" )
 add_library( c2p
     src/config.cpp
     src/param.cpp
+    src/json.cpp
 )
 list( APPEND PROJECT_TARGETS c2p )
 target_include_directories( c2p PUBLIC include )
