@@ -72,10 +72,20 @@ if( PROJECT_CMAKE_TIME )
     target_compile_definitions( c2p PRIVATE PROJECT_CMAKE_TIME="${PROJECT_CMAKE_TIME}" )
 endif()
 
-# target: exe example
-add_executable( example example/example.cpp )
-list( APPEND PROJECT_TARGETS example )
-target_link_libraries( example PRIVATE c2p )
+# target: exe example_transform
+add_executable( example_transform example/example_transform.cpp )
+list( APPEND PROJECT_TARGETS example_transform )
+target_link_libraries( example_transform PRIVATE c2p )
+
+# target: exe example_value_tree
+add_executable( example_value_tree example/example_value_tree.cpp )
+list( APPEND PROJECT_TARGETS example_value_tree )
+target_link_libraries( example_value_tree PRIVATE c2p )
+
+# target: exe example_json
+add_executable( example_json example/example_json.cpp )
+list( APPEND PROJECT_TARGETS example_json )
+target_link_libraries( example_json PRIVATE c2p )
 
 
 # ============================================================

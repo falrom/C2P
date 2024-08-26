@@ -6,6 +6,7 @@
 #ifndef __C2P_JSON_HPP__
 #define __C2P_JSON_HPP__
 
+#include <c2p/common.hpp>
 #include <c2p/value_tree.hpp>
 
 namespace c2p {
@@ -31,11 +32,11 @@ namespace json {
 ///            / 'null'
 ///
 /// Object     <- '{' S Members? S '}'
-/// Members    <- Member (S ',' S Member)* (S ',')?  // trailing comma is
-/// allowed Member     <- String S ':' S Value
+/// Members    <- Member (S ',' S Member)* (S ',')?  // trailing comma is OK
+/// Member     <- String S ':' S Value
 ///
 /// Array      <- '[' S Elements? S ']'
-/// Elements   <- Value (S ',' S Value)* (S ',')?  // trailing comma is allowed
+/// Elements   <- Value (S ',' S Value)* (S ',')?  // trailing comma is OK
 ///
 /// String     <- '"' Characters '"'
 /// Characters <- Character*
@@ -45,7 +46,7 @@ namespace json {
 /// Escape     <- ["\\/bfnrt]
 ///            / 'u' Hex Hex Hex Hex
 ///
-/// Number     <- ('+' / '-')? Integer Fraction? Exponent?  // '+' is allowed
+/// Number     <- ('+' / '-')? Integer Fraction? Exponent?  // '+' is OK
 /// for positive numbers Integer    <- '0' / [1-9] [0-9]* Fraction   <- '.'
 /// [0-9]+ Exponent   <- [eE] [+-]? [0-9]+
 ///
@@ -55,7 +56,8 @@ namespace json {
 ///
 /// Hex        <- [0-9a-fA-F]
 /// @endcode
-value_tree::ValueNode parse(const std::string& json);
+value_tree::ValueNode
+parse(const std::string& json, const Logger& logger = Logger());
 
 /// Serialize value tree into JSON string.
 /// If valueNode is NONE, return empty string.

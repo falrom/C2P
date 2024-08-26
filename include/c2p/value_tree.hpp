@@ -8,6 +8,8 @@
 
 #include <cstddef>
 #include <map>
+#include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -20,6 +22,8 @@ class ValueNode;
 
 struct NoneValue {
     constexpr explicit NoneValue(int) {}
+    bool operator==(const NoneValue&) const { return true; }
+    bool operator!=(const NoneValue&) const { return false; }
 };
 constexpr NoneValue NONE(0);
 
@@ -121,6 +125,12 @@ class ValueNode
 
     /// For std::string_view. Cast to std::string.
     ValueNode(std::string_view value): _value(std::string(value)) {}
+
+    /// For const std::string&.
+    ValueNode(const std::string& value): _value(value) {}
+
+    /// For std::string&&.
+    ValueNode(std::string&& value): _value(value) {}
 
     /// For integral types. Cast to double.
     template <

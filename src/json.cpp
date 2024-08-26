@@ -7,10 +7,288 @@ using namespace c2p::value_tree;
 namespace c2p {
 namespace json {
 
-ValueNode parse(const std::string& json) {
+bool _parseWhitespace(const std::string& json, size_t& pos) {
+    if (pos >= json.size() || !std::isspace(uint8_t(json[pos]))) return false;
+    ++pos;
+    return true;
+}
+
+bool _parseComment(const std::string& json, size_t& pos) {
+    if (pos + 1 >= json.size() || json[pos] != '/' || json[pos + 1] != '/') {
+        return false;
+    }
+    pos += 2;
+    while (pos < json.size() && json[pos] != '\n' && json[pos] != '\r') ++pos;
+    return true;
+}
+
+void _skipWhitespace(const std::string& json, size_t& pos) {
+    while (_parseWhitespace(json, pos) || _parseComment(json, pos));
+}
+
+bool _parseString(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+) {
+    ++pos;  // Skip initial quote
+    std::string result;
+    while (pos < json.size() && json[pos] != '"') {
+        if (json[pos] == '\\') {
+            ++pos;
+            if (pos >= json.size()) {
+                logger.logError("Unexpected end of input in string escape.");
+                return false;
+            }
+            switch (json[pos]) {
+                case '"': result.push_back('"'); break;
+                case '\\': result.push_back('\\'); break;
+                case '/': result.push_back('/'); break;
+                case 'b': result.push_back('\b'); break;
+                case 'f': result.push_back('\f'); break;
+                case 'n': result.push_back('\n'); break;
+                case 'r': result.push_back('\r'); break;
+                case 't': result.push_back('\t'); break;
+                case 'u': {
+                    if (pos + 4 >= json.size()) {
+                        logger.logError("Invalid Unicode escape sequence.");
+                        return false;
+                    }
+                    std::string hex = json.substr(pos + 1, 4);
+                    result.push_back(
+                        static_cast<char>(std::stoi(hex, nullptr, 16))
+                    );
+                    pos += 4;
+                    break;
+                }
+                default: {
+                    logger.logError("Invalid escape character.");
+                    return false;
+                }
+            }
+        } else {
+            result.push_back(json[pos]);
+        }
+        ++pos;
+    }
+    if (pos >= json.size() || json[pos] != '"') {
+        logger.logError("Unterminated string.");
+        return false;
+    }
+    ++pos;  // Skip closing quote
+    node = result;
+    return true;
+}
+
+bool _parseValue(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+);
+
+bool _parseObject(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+) {
+    node = ObjectValue();
+    ++pos;  // Skip initial brace
+    _skipWhitespace(json, pos);
+    if (pos < json.size() && json[pos] == '}') {
+        // Empty object
+        ++pos;
+        return true;
+    }
+    auto& object = node.asObject();
+    while (pos < json.size()) {
+        _skipWhitespace(json, pos);
+        ValueNode key;
+        if (!_parseString(key, json, pos, logger)) {
+            logger.logError("Failed to parse object key.");
+            return false;
+        }
+        _skipWhitespace(json, pos);
+        if (pos >= json.size() || json[pos] != ':') {
+            logger.logError("Expected ':' in object.");
+            return false;
+        }
+        ++pos;
+        _skipWhitespace(json, pos);
+        ValueNode& value = object[*key.value<ValueType::STRING>()];
+        if (!_parseValue(value, json, pos, logger)) {
+            logger.logError("Failed to parse object value.");
+            return false;
+        }
+        _skipWhitespace(json, pos);
+        if (pos < json.size() && json[pos] == '}') {
+            ++pos;
+            return true;
+        }
+        if (pos >= json.size() || json[pos] != ',') {
+            logger.logError("Expected ',' or '}' in object.");
+            return false;
+        }
+        ++pos;
+        _skipWhitespace(json, pos);
+        if (pos < json.size() && json[pos] == '}') {
+            ++pos;
+            return true;
+        }
+    }
+    logger.logError("Unterminated object.");
+    return false;
+}
+
+bool _parseArray(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+) {
+    node = ArrayValue();
+    ++pos;  // Skip initial bracket
+    _skipWhitespace(json, pos);
+    if (pos < json.size() && json[pos] == ']') {
+        ++pos;
+        return true;
+    }
+    auto& array = node.asArray();
+    while (pos < json.size()) {
+        _skipWhitespace(json, pos);
+        array.push_back(ValueNode());
+        if (!_parseValue(array.back(), json, pos, logger)) {
+            logger.logError("Failed to parse array value.");
+            return false;
+        }
+        _skipWhitespace(json, pos);
+        if (pos < json.size() && json[pos] == ']') {
+            ++pos;
+            return true;
+        }
+        if (pos >= json.size() || json[pos] != ',') {
+            logger.logError("Expected ',' or ']' in array.");
+            return false;
+        }
+        ++pos;
+        _skipWhitespace(json, pos);
+        if (pos < json.size() && json[pos] == ']') {
+            ++pos;
+            return true;
+        }
+    }
+    logger.logError("Unterminated array.");
+    return false;
+}
+
+bool _parseNumber(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+) {
+    size_t start = pos;
+    if (json[pos] == '+' || json[pos] == '-') ++pos;
+    if (pos >= json.size()) {
+        logger.logError("Invalid number.");
+        return false;
+    }
+    if (json[pos] == '0') {
+        ++pos;
+    } else {
+        if (!std::isdigit(json[pos])) {
+            logger.logError("Invalid number.");
+            return false;
+        }
+        while (pos < json.size() && std::isdigit(json[pos])) ++pos;
+    }
+    if (pos < json.size() && json[pos] == '.') {
+        ++pos;
+        if (pos >= json.size() || !std::isdigit(json[pos])) {
+            logger.logError("Invalid number.");
+            return false;
+        }
+        while (pos < json.size() && std::isdigit(json[pos])) ++pos;
+    }
+    if (pos < json.size() && (json[pos] == 'e' || json[pos] == 'E')) {
+        ++pos;
+        if (pos < json.size() && (json[pos] == '+' || json[pos] == '-')) ++pos;
+        if (pos >= json.size() || !std::isdigit(json[pos])) {
+            logger.logError("Invalid number.");
+            return false;
+        }
+        while (pos < json.size() && std::isdigit(json[pos])) ++pos;
+    }
+    node = std::stod(json.substr(start, pos - start));
+    return true;
+}
+
+bool _parseTrue(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+) {
+    if (json.substr(pos, 4) != "true") {
+        logger.logError("Invalid value. Expected to be \"true\".");
+        return false;
+    }
+    pos += 4;
+    node = true;
+    return true;
+}
+
+bool _parseFalse(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+) {
+    if (json.substr(pos, 5) != "false") {
+        logger.logError("Invalid value. Expected to be \"false\".");
+        return false;
+    }
+    pos += 5;
+    node = false;
+    return true;
+}
+
+bool _parseNull(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+) {
+    if (json.substr(pos, 4) != "null") {
+        logger.logError("Invalid value. Expected to be \"null\".");
+        return false;
+    }
+    pos += 4;
+    node = NONE;
+    return true;
+}
+
+bool _parseValue(
+    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+) {
+    if (json[pos] == '{') return _parseObject(node, json, pos, logger);
+    if (json[pos] == '[') return _parseArray(node, json, pos, logger);
+    if (json[pos] == '"') return _parseString(node, json, pos, logger);
+    if (json[pos] == 't') return _parseTrue(node, json, pos, logger);
+    if (json[pos] == 'f') return _parseFalse(node, json, pos, logger);
+    if (json[pos] == 'n') return _parseNull(node, json, pos, logger);
+    if (json[pos] == '+' || json[pos] == '-' || std::isdigit(json[pos]))
+        return _parseNumber(node, json, pos, logger);
+    logger.logError("Invalid JSON value.");
+    return false;
+}
+
+ValueNode parse(const std::string& json, const Logger& logger) {
     ValueNode node;
-    // TODO
+    size_t pos = 0;
+    _skipWhitespace(json, pos);
+    if (!_parseValue(node, json, pos, logger)) {
+        logger.logError("Failed to parse JSON value.");
+        return NONE;
+    }
+    _skipWhitespace(json, pos);
+    if (pos != json.size()) {
+        logger.logWarning("Extra characters after JSON value.");
+    }
     return node;
+}
+
+void _escapeString(const std::string& input, std::stringstream& stream) {
+    for (char c: input) {
+        switch (c) {
+            case '"': stream << "\\\""; break;
+            case '\\': stream << "\\\\"; break;
+            case '\b': stream << "\\b"; break;
+            case '\f': stream << "\\f"; break;
+            case '\n': stream << "\\n"; break;
+            case '\r': stream << "\\r"; break;
+            case '\t': stream << "\\t"; break;
+            default: stream << c; break;
+        }
+    }
 }
 
 static void _dump(
@@ -35,8 +313,9 @@ static void _dump(
         } break;
 
         case ValueType::STRING: {
-            // TODO: escape
-            stream << '"' << *node.value<ValueType::STRING>() << '"';
+            stream << '"';
+            _escapeString(*node.value<ValueType::STRING>(), stream);
+            stream << '"';
         } break;
 
         case ValueType::ARRAY: {
