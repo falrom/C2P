@@ -34,7 +34,7 @@ struct Rule {
     std::string description;
 
     /// Will call this function to complete the partial transformation from
-    /// config to param. See more details in @ref TransformCallback.
+    /// config to param. See more details in `TransformCallback`.
     TransformCallback transform;
 };
 

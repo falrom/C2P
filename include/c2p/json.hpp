@@ -1,6 +1,7 @@
 /**
  * @file json.hpp
  * @brief JSON serialization and deserialization.
+ * Based on value tree.
  */
 
 #ifndef __C2P_JSON_HPP__
@@ -20,7 +21,7 @@ namespace json {
 /// - '+' is allowed for positive numbers
 /// - single-line comment starts with '//'
 ///
-/// @code {.peg}
+/// ```peg
 /// JSON       <- S Value S
 ///
 /// Value      <- Object
@@ -55,7 +56,7 @@ namespace json {
 /// Comment    <- '//' (![\n\r] .)*  // single-line comment starts with '//'
 ///
 /// Hex        <- [0-9a-fA-F]
-/// @endcode
+/// ```
 value_tree::ValueNode
 parse(const std::string& json, const Logger& logger = Logger());
 

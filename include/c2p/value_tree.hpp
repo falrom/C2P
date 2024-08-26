@@ -47,6 +47,9 @@ struct TypeOfEnum {
     using type = std::variant_alternative_t<size_t(typeEnum), Value>;
 };
 
+/// Definition of value tree node. A node and its descendants can represent a
+/// tree structure. It can be used as an intermediate data structure for parsing
+/// and generating configuration files, JSON, etc.
 class ValueNode
 {
   public:
