@@ -7,13 +7,13 @@ using namespace c2p::value_tree;
 namespace c2p {
 namespace json {
 
-bool _parseWhitespace(const std::string& json, size_t& pos) {
+static bool _parseWhitespace(const std::string& json, size_t& pos) {
     if (pos >= json.size() || !std::isspace(uint8_t(json[pos]))) return false;
     ++pos;
     return true;
 }
 
-bool _parseComment(const std::string& json, size_t& pos) {
+static bool _parseComment(const std::string& json, size_t& pos) {
     if (pos + 1 >= json.size() || json[pos] != '/' || json[pos + 1] != '/') {
         return false;
     }
@@ -22,11 +22,11 @@ bool _parseComment(const std::string& json, size_t& pos) {
     return true;
 }
 
-void _skipWhitespace(const std::string& json, size_t& pos) {
+static void _skipWhitespace(const std::string& json, size_t& pos) {
     while (_parseWhitespace(json, pos) || _parseComment(json, pos));
 }
 
-bool _parseString(
+static bool _parseString(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 ) {
     ++pos;  // Skip initial quote
@@ -78,11 +78,11 @@ bool _parseString(
     return true;
 }
 
-bool _parseValue(
+static bool _parseValue(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 );
 
-bool _parseObject(
+static bool _parseObject(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 ) {
     node = ObjectValue();
@@ -133,7 +133,7 @@ bool _parseObject(
     return false;
 }
 
-bool _parseArray(
+static bool _parseArray(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 ) {
     node = ArrayValue();
@@ -171,7 +171,7 @@ bool _parseArray(
     return false;
 }
 
-bool _parseNumber(
+static bool _parseNumber(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 ) {
     size_t start = pos;
@@ -210,7 +210,7 @@ bool _parseNumber(
     return true;
 }
 
-bool _parseTrue(
+static bool _parseTrue(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 ) {
     if (json.substr(pos, 4) != "true") {
@@ -222,7 +222,7 @@ bool _parseTrue(
     return true;
 }
 
-bool _parseFalse(
+static bool _parseFalse(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 ) {
     if (json.substr(pos, 5) != "false") {
@@ -234,7 +234,7 @@ bool _parseFalse(
     return true;
 }
 
-bool _parseNull(
+static bool _parseNull(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 ) {
     if (json.substr(pos, 4) != "null") {
@@ -246,7 +246,7 @@ bool _parseNull(
     return true;
 }
 
-bool _parseValue(
+static bool _parseValue(
     ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
 ) {
     if (json[pos] == '{') return _parseObject(node, json, pos, logger);
@@ -257,7 +257,9 @@ bool _parseValue(
     if (json[pos] == 'n') return _parseNull(node, json, pos, logger);
     if (json[pos] == '+' || json[pos] == '-' || std::isdigit(json[pos]))
         return _parseNumber(node, json, pos, logger);
-    logger.logError("Invalid JSON value.");
+    logger.logError(
+        std::string("Invalid JSON value with head: '") + json[pos] + "'."
+    );
     return false;
 }
 
@@ -266,17 +268,17 @@ ValueNode parse(const std::string& json, const Logger& logger) {
     size_t pos = 0;
     _skipWhitespace(json, pos);
     if (!_parseValue(node, json, pos, logger)) {
-        logger.logError("Failed to parse JSON value.");
+        logger.logError("Failed to parse JSON.");
         return NONE;
     }
     _skipWhitespace(json, pos);
     if (pos != json.size()) {
-        logger.logWarning("Extra characters after JSON value.");
+        logger.logWarning("Extra characters after JSON.");
     }
     return node;
 }
 
-void _escapeString(const std::string& input, std::stringstream& stream) {
+static void _escapeString(const std::string& input, std::stringstream& stream) {
     for (char c: input) {
         switch (c) {
             case '"': stream << "\\\""; break;

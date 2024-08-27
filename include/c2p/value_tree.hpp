@@ -6,9 +6,7 @@
 #ifndef __C2P_VALUE_TREE_HPP__
 #define __C2P_VALUE_TREE_HPP__
 
-#include <cstddef>
 #include <map>
-#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>

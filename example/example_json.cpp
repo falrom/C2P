@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
     // allow comment
 }
 )";
-    auto nn = c2p::json::parse(json, logger);
-    std::cout << c2p::json::dump(nn, true, 4) << std::endl;
+
+    auto node = c2p::json::parse(json, logger);
+    std::cout << c2p::json::dump(node, true, 4) << std::endl;
 }
