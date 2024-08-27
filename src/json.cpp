@@ -1,3 +1,41 @@
+/// Extended JSON PEG Grammar:
+///
+/// ```peg
+/// JSON       <- S Value S
+///
+/// Value      <- Object
+///            / Array
+///            / String
+///            / Number
+///            / 'true'
+///            / 'false'
+///            / 'null'
+///
+/// Object     <- '{' S Members? S '}'
+/// Members    <- Member (S ',' S Member)* (S ',')?  // trailing comma is OK
+/// Member     <- String S ':' S Value
+///
+/// Array      <- '[' S Elements? S ']'
+/// Elements   <- Value (S ',' S Value)* (S ',')?  // trailing comma is OK
+///
+/// String     <- '"' Characters '"'
+/// Characters <- Character*
+/// Character  <- !["\\] .
+///            / '\\' Escape
+/// Escape     <- ["\\/bfnrt]
+///            / 'u' Hex Hex Hex Hex
+/// Hex        <- [0-9a-fA-F]
+///
+/// Number     <- ('+' / '-')? Integer Fraction? Exponent?  // '+' is OK
+/// Integer    <- '0' / [1-9] [0-9]*
+/// Fraction   <- '.' [0-9]+
+/// Exponent   <- [eE] [+-]? [0-9]+
+///
+/// S          <- (Whitespace / Comment)*
+/// Whitespace <- [ \t\n\r]
+/// Comment    <- '//' (![\n\r] .)*  // single-line comment starts with '//'
+/// ```
+
 #include "c2p/json.hpp"
 
 #include <sstream>
