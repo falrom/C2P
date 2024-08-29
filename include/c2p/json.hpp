@@ -24,7 +24,6 @@ value_tree::ValueNode
 parse(const std::string& json, const Logger& logger = Logger());
 
 /// Serialize value tree into JSON string.
-/// If valueNode is NONE, return empty string.
 std::string
 dump(value_tree::ValueNode& node, bool pretty = false, size_t indentStep = 2);
 

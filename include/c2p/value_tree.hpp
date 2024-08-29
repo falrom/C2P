@@ -37,9 +37,6 @@ using Value = std::variant< NoneValue, BoolValue, NumberValue, StringValue, Arra
 enum class ValueType      { NONE,      BOOL,      NUMBER,      STRING,      ARRAY,      OBJECT      };
 // clang-format on
 
-using ValuePtr = std::shared_ptr<Value>;
-using ConstValuePtr = std::shared_ptr<const Value>;
-
 template <ValueType typeEnum>
 struct TypeOfEnum {
     using type = std::variant_alternative_t<size_t(typeEnum), Value>;

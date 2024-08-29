@@ -420,7 +420,6 @@ static void _dump(
 }
 
 std::string dump(ValueNode& node, bool pretty, size_t indentStep) {
-    if (node.type() == ValueType::NONE) return "";
     std::stringstream stream;
     _dump(node, stream, pretty, 0, indentStep);
     return stream.str();

@@ -54,6 +54,7 @@ set( PROJECT_TARGETS "" )
 # target: lib c2p
 add_library( c2p
     src/json.cpp
+    src/ini.cpp
     src/cli.cpp
 )
 list( APPEND PROJECT_TARGETS c2p )
