@@ -13,7 +13,7 @@
 namespace c2p {
 namespace json {
 
-/// Pase JSON string into ValueTree.
+/// Parse JSON string into ValueTree.
 /// If the input JSON string is invalid, return an empty ValueTree.
 ///
 /// Extended JSON Grammar:

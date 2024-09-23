@@ -16,14 +16,13 @@ namespace ini {
 // TODO
 
 #if false
-/// Pase INI string into ValueTree.
+/// Parse INI string into ValueTree.
 /// If the input INI string is invalid, return an empty ValueTree.
 ///
 /// Extended INI Grammar:
 /// - Allow single-line comments starting with ';' or '#'.
 /// - Allow no-section key-value pairs at the beginning.
-value_tree::ValueTree
-parse(const std::string& ini, const Logger& logger = Logger());
+ValueTree parse(const std::string& ini, const Logger& logger = Logger());
 
 /// Serialize ValueTree into INI string.
 ///
@@ -31,7 +30,7 @@ parse(const std::string& ini, const Logger& logger = Logger());
 /// Note: Since INI files do NOT support arrays and complex nesting, if the
 /// input node can NOT be converted to a valid INI format, an empty string will
 /// be returned.
-std::string dump(value_tree::ValueTree& node);
+std::string dump(ValueTree& node);
 #endif
 
 }  // namespace ini
