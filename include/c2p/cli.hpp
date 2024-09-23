@@ -1,7 +1,7 @@
 /**
  * @file cli.hpp
  * @brief Command line argument parsing.
- * Based on value tree.
+ * Based on ValueTree.
  */
 
 #ifndef __C2P_CLI_HPP__

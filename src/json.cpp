@@ -40,8 +40,6 @@
 
 #include <sstream>
 
-using namespace c2p::value_tree;
-
 namespace c2p {
 namespace json {
 
@@ -65,7 +63,7 @@ static void _skipWhitespace(const std::string& json, size_t& pos) {
 }
 
 static bool _parseString(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 ) {
     ++pos;  // Skip initial quote
     std::string result;
@@ -112,18 +110,18 @@ static bool _parseString(
         return false;
     }
     ++pos;  // Skip closing quote
-    node = result;
+    tree = result;
     return true;
 }
 
 static bool _parseValue(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 );
 
 static bool _parseObject(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 ) {
-    node = ObjectValue();
+    auto& object = tree.asObject();
     ++pos;  // Skip initial brace
     _skipWhitespace(json, pos);
     if (pos < json.size() && json[pos] == '}') {
@@ -131,10 +129,9 @@ static bool _parseObject(
         ++pos;
         return true;
     }
-    auto& object = node.asObject();
     while (pos < json.size()) {
         _skipWhitespace(json, pos);
-        ValueNode key;
+        ValueTree key;
         if (!_parseString(key, json, pos, logger)) {
             logger.logError("Failed to parse object key.");
             return false;
@@ -146,7 +143,7 @@ static bool _parseObject(
         }
         ++pos;
         _skipWhitespace(json, pos);
-        ValueNode& value = object[*key.value<ValueType::STRING>()];
+        ValueTree& value = object[*key.value<TypeTag::STRING>()];
         if (!_parseValue(value, json, pos, logger)) {
             logger.logError("Failed to parse object value.");
             return false;
@@ -172,19 +169,18 @@ static bool _parseObject(
 }
 
 static bool _parseArray(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 ) {
-    node = ArrayValue();
+    auto& array = tree.asArray();
     ++pos;  // Skip initial bracket
     _skipWhitespace(json, pos);
     if (pos < json.size() && json[pos] == ']') {
         ++pos;
         return true;
     }
-    auto& array = node.asArray();
     while (pos < json.size()) {
         _skipWhitespace(json, pos);
-        array.push_back(ValueNode());
+        array.push_back(ValueTree());
         if (!_parseValue(array.back(), json, pos, logger)) {
             logger.logError("Failed to parse array value.");
             return false;
@@ -210,7 +206,7 @@ static bool _parseArray(
 }
 
 static bool _parseNumber(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 ) {
     size_t start = pos;
     if (json[pos] == '+' || json[pos] == '-') ++pos;
@@ -244,76 +240,76 @@ static bool _parseNumber(
         }
         while (pos < json.size() && std::isdigit(json[pos])) ++pos;
     }
-    node = std::stod(json.substr(start, pos - start));
+    tree = std::stod(json.substr(start, pos - start));
     return true;
 }
 
 static bool _parseTrue(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 ) {
     if (json.substr(pos, 4) != "true") {
         logger.logError("Invalid value. Expected to be \"true\".");
         return false;
     }
     pos += 4;
-    node = true;
+    tree = true;
     return true;
 }
 
 static bool _parseFalse(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 ) {
     if (json.substr(pos, 5) != "false") {
         logger.logError("Invalid value. Expected to be \"false\".");
         return false;
     }
     pos += 5;
-    node = false;
+    tree = false;
     return true;
 }
 
 static bool _parseNull(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 ) {
     if (json.substr(pos, 4) != "null") {
         logger.logError("Invalid value. Expected to be \"null\".");
         return false;
     }
     pos += 4;
-    node = NONE;
+    tree = NONE;
     return true;
 }
 
 static bool _parseValue(
-    ValueNode& node, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
 ) {
-    if (json[pos] == '{') return _parseObject(node, json, pos, logger);
-    if (json[pos] == '[') return _parseArray(node, json, pos, logger);
-    if (json[pos] == '"') return _parseString(node, json, pos, logger);
-    if (json[pos] == 't') return _parseTrue(node, json, pos, logger);
-    if (json[pos] == 'f') return _parseFalse(node, json, pos, logger);
-    if (json[pos] == 'n') return _parseNull(node, json, pos, logger);
+    if (json[pos] == '{') return _parseObject(tree, json, pos, logger);
+    if (json[pos] == '[') return _parseArray(tree, json, pos, logger);
+    if (json[pos] == '"') return _parseString(tree, json, pos, logger);
+    if (json[pos] == 't') return _parseTrue(tree, json, pos, logger);
+    if (json[pos] == 'f') return _parseFalse(tree, json, pos, logger);
+    if (json[pos] == 'n') return _parseNull(tree, json, pos, logger);
     if (json[pos] == '+' || json[pos] == '-' || std::isdigit(json[pos]))
-        return _parseNumber(node, json, pos, logger);
+        return _parseNumber(tree, json, pos, logger);
     logger.logError(
         std::string("Invalid JSON value with head: '") + json[pos] + "'."
     );
     return false;
 }
 
-ValueNode parse(const std::string& json, const Logger& logger) {
-    ValueNode node;
+ValueTree parse(const std::string& json, const Logger& logger) {
+    ValueTree tree;
     size_t pos = 0;
     _skipWhitespace(json, pos);
-    if (!_parseValue(node, json, pos, logger)) {
+    if (!_parseValue(tree, json, pos, logger)) {
         logger.logError("Failed to parse JSON.");
-        return NONE;
+        return ValueTree();
     }
     _skipWhitespace(json, pos);
     if (pos != json.size()) {
         logger.logWarning("Extra characters after JSON.");
     }
-    return node;
+    return tree;
 }
 
 static void _escapeString(const std::string& input, std::stringstream& stream) {
@@ -332,34 +328,41 @@ static void _escapeString(const std::string& input, std::stringstream& stream) {
 }
 
 static void _dump(
-    ValueNode& node,
+    ValueTree& tree,
     std::stringstream& stream,
     bool pretty,
     size_t indent,
     size_t indentStep
 ) {
     size_t newIndent = indent + indentStep;
-    switch (node.type()) {
-        case ValueType::NONE: {
-            stream << "null";
+    switch (tree.state()) {
+        case ValueTree::State::EMPTY: break;
+
+        case ValueTree::State::VALUE: {
+            const auto& node = tree.asValue();
+            switch (node.typeTag()) {
+                case TypeTag::NONE: {
+                    stream << "null";
+                } break;
+
+                case TypeTag::BOOL: {
+                    stream << (*node.value<TypeTag::BOOL>() ? "true" : "false");
+                } break;
+
+                case TypeTag::NUMBER: {
+                    stream << *node.value<TypeTag::NUMBER>();
+                } break;
+
+                case TypeTag::STRING: {
+                    stream << '"';
+                    _escapeString(*node.value<TypeTag::STRING>(), stream);
+                    stream << '"';
+                } break;
+            }
         } break;
 
-        case ValueType::BOOL: {
-            stream << (*node.value<ValueType::BOOL>() ? "true" : "false");
-        } break;
-
-        case ValueType::NUMBER: {
-            stream << *node.value<ValueType::NUMBER>();
-        } break;
-
-        case ValueType::STRING: {
-            stream << '"';
-            _escapeString(*node.value<ValueType::STRING>(), stream);
-            stream << '"';
-        } break;
-
-        case ValueType::ARRAY: {
-            auto& array = node.asArray();
+        case ValueTree::State::ARRAY: {
+            auto& array = tree.asArray();
             if (array.empty()) {
                 stream << "[]";
                 break;
@@ -386,8 +389,8 @@ static void _dump(
             }
         } break;
 
-        case ValueType::OBJECT: {
-            auto& object = node.asObject();
+        case ValueTree::State::OBJECT: {
+            auto& object = tree.asObject();
             if (object.empty()) {
                 stream << "{}";
                 break;
@@ -419,9 +422,9 @@ static void _dump(
     }
 }
 
-std::string dump(ValueNode& node, bool pretty, size_t indentStep) {
+std::string dump(ValueTree& tree, bool pretty, size_t indentStep) {
     std::stringstream stream;
-    _dump(node, stream, pretty, 0, indentStep);
+    _dump(tree, stream, pretty, 0, indentStep);
     return stream.str();
 }
 

@@ -1,7 +1,7 @@
 /**
  * @file json.hpp
  * @brief JSON serialization and deserialization.
- * Based on value tree.
+ * Based on ValueTree.
  */
 
 #ifndef __C2P_JSON_HPP__
@@ -13,19 +13,19 @@
 namespace c2p {
 namespace json {
 
-/// Pase JSON string into value tree.
-/// If the input JSON string is invalid, return NONE.
+/// Pase JSON string into ValueTree.
+/// If the input JSON string is invalid, return an empty ValueTree.
 ///
 /// Extended JSON Grammar:
 /// - trailing comma is allowed
 /// - '+' is allowed for positive numbers
 /// - single-line comment starts with '//'
-value_tree::ValueNode
-parse(const std::string& json, const Logger& logger = Logger());
+ValueTree parse(const std::string& json, const Logger& logger = Logger());
 
-/// Serialize value tree into JSON string.
-std::string
-dump(value_tree::ValueNode& node, bool pretty = false, size_t indentStep = 2);
+/// Serialize ValueTree into JSON string.
+///
+/// If ValueTree is empty, return an empty string.
+std::string dump(ValueTree& node, bool pretty = false, size_t indentStep = 2);
 
 }  // namespace json
 }  // namespace c2p

@@ -26,6 +26,6 @@ Finally, call the transform function to apply these `Rule`s.
 
 ## Parsing Config from IO
 
-We treat various user inputs as the source and parse them into a common intermediate [value tree](include/c2p/value_tree.hpp) (composed of multiple `ValueNode`s). After that, you can define the conversion from value tree to `Config` as well as override rules for different input methods.
+We treat various user inputs as the source and parse them into a common intermediate [ValueTree](include/c2p/value_tree.hpp) (composed of multiple `ValueNode`s). After that, you can define the conversion from `ValueTree` to `Config` as well as override rules for different input methods.
 
-Some tools are provided for parsing inputs, such as [JSON serialization/deserialization](include/c2p/json.hpp), command-line argument parsing (TODO), etc. All of these produce a value tree as the output.
+Some tools are provided for parsing inputs, such as [JSON serialization/deserialization](include/c2p/json.hpp), command-line argument parsing (TODO), etc. All of these produce a `ValueTree` as the output.

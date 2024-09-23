@@ -1,6 +1,6 @@
 /**
  * @file value_tree.hpp
- * @author Common configuration value tree definition.
+ * @author Common configuration ValueTree definition.
  */
 
 #ifndef __C2P_VALUE_TREE_HPP__
@@ -14,100 +14,49 @@
 #include <vector>
 
 namespace c2p {
-namespace value_tree {
-
-class ValueNode;
 
 struct NoneValue {
-    constexpr explicit NoneValue(int) {}
+    enum class _Construct { _TOKEN };
+    explicit constexpr NoneValue(_Construct) noexcept {}
     bool operator==(const NoneValue&) const { return true; }
     bool operator!=(const NoneValue&) const { return false; }
 };
-constexpr NoneValue NONE(0);
+constexpr NoneValue NONE{ NoneValue::_Construct::_TOKEN };
 
 using BoolValue = bool;
 using NumberValue = double;
 using StringValue = std::string;
-using ArrayValue = std::vector<ValueNode>;
-using ObjectValue = std::map<std::string, ValueNode>;
 
 // clang-format off
-/// The number and order of template types must be consistent with enum `ValueType`.
-using Value = std::variant< NoneValue, BoolValue, NumberValue, StringValue, ArrayValue, ObjectValue >;
-enum class ValueType      { NONE,      BOOL,      NUMBER,      STRING,      ARRAY,      OBJECT      };
+/// The number and order of template types must be consistent with enum `TypeTag`.
+using Value = std::variant< NoneValue, BoolValue, NumberValue, StringValue >;
+enum class TypeTag        { NONE,      BOOL,      NUMBER,      STRING,     };
 // clang-format on
 
-template <ValueType typeEnum>
-struct TypeOfEnum {
-    using type = std::variant_alternative_t<size_t(typeEnum), Value>;
+/// Get the corresponding value type through the TypeTag enumeration value.
+template <TypeTag typeTag>
+struct TypeOfTag {
+    using type = std::variant_alternative_t<size_t(typeTag), Value>;
 };
 
-/// Definition of value tree node. A node and its descendants can represent a
-/// tree structure. It can be used as an intermediate data structure for parsing
-/// and generating configuration files, JSON, etc.
+/// Definition of `ValueTree` node which stores a value of an indeterminate
+/// type. A `ValueTree` is organized by `ArrayNode` and `ObjectNode`. The
+/// leaves of the `ValueTree` are all of `ValueNode` type, storing the actual
+/// values.
 class ValueNode
 {
   public:
 
-    /// If value is NONE, return false.
-    operator bool() const { return type() != ValueType::NONE; }
-
-  public:
-
-    /// Get type of stored value.
-    ValueType type() const { return static_cast<ValueType>(_value.index()); }
+    /// Get TypeTag of stored value.
+    TypeTag typeTag() const { return static_cast<TypeTag>(_value.index()); }
 
     /// Try to get stored value.
-    /// If current value is NOT ( NONE | BOOL | NUMBER | STRING ), return
-    /// std::nullopt. If current value is NOT the same as template type, return
-    /// std::nullopt.
-    template <ValueType typeEnum>
-    auto value() const -> std::optional<typename TypeOfEnum<typeEnum>::type> {
-        if constexpr (typeEnum == ValueType::NONE || typeEnum == ValueType::BOOL
-                      || typeEnum == ValueType::NUMBER
-                      || typeEnum == ValueType::STRING)
-        {
-            if (type() != typeEnum) return std::nullopt;
-            else return std::get<size_t(typeEnum)>(_value);
-        } else return std::nullopt;
-    }
-
-    /// Get ArrayValue reference.
-    /// If current value is NOT an array, change it to an empty array.
-    ArrayValue& asArray() {
-        if (type() != ValueType::ARRAY) {
-            _value = ArrayValue();
-        }
-        return std::get<size_t(ValueType::ARRAY)>(_value);
-    }
-
-    /// Get ObjectValue reference.
-    /// If current value is NOT an object, change it to an empty object.
-    ObjectValue& asObject() {
-        if (type() != ValueType::OBJECT) {
-            _value = ObjectValue();
-        }
-        return std::get<size_t(ValueType::OBJECT)>(_value);
-    }
-
-    /// Get stored value reference at ObjectValue[key].
-    /// If current value is NOT an object, change it to NONE object.
-    /// If key does not exist, create and set as NONE.
-    ValueNode& operator[](const std::string& key) {
-        if (type() != ValueType::OBJECT) {
-            _value = ObjectValue();
-        }
-        return std::get<size_t(ValueType::OBJECT)>(_value)[key];
-    }
-
-    /// Get stored value reference at ObjectValue[key].
-    /// If current value is NOT an object, change it to NONE object.
-    /// If key does not exist, create and set as NONE.
-    ValueNode& operator[](const char* key) {
-        if (type() != ValueType::OBJECT) {
-            _value = ObjectValue();
-        }
-        return std::get<size_t(ValueType::OBJECT)>(_value)[key];
+    /// If current value is NOT the same as template TypeTag,
+    /// return std::nullopt.
+    template <TypeTag tag>
+    auto value() const -> std::optional<typename TypeOfTag<tag>::type> {
+        if (typeTag() != tag) return std::nullopt;
+        else return std::get<size_t(tag)>(_value);
     }
 
   public:
@@ -117,6 +66,9 @@ class ValueNode
 
     /// For NONE.
     ValueNode(NoneValue): _value(NONE) {}
+
+    /// For bool.
+    ValueNode(bool value): _value(value) {}
 
     /// For const char*. Cast to std::string.
     ValueNode(const char* value): _value(std::string(value)) {}
@@ -142,27 +94,7 @@ class ValueNode
         typename T,
         typename =
             std::enable_if_t<!std::is_integral_v<T> && !std::is_reference_v<T>>>
-    ValueNode(T&& value): _value(value) {}
-
-    /// From std::vector to ArrayValue.
-    template <typename T>
-    static ValueNode from(std::vector<T>&& vector) {
-        ArrayValue array;
-        for (auto& value: vector) {
-            array.push_back(ValueNode(value));
-        }
-        return ValueNode(std::move(array));
-    }
-
-    /// From std::map to ObjectValue.
-    template <typename T>
-    static ValueNode from(std::map<std::string, T>&& map) {
-        ObjectValue object;
-        for (auto& [key, value]: map) {
-            object[key] = ValueNode(value);
-        }
-        return ValueNode(std::move(object));
-    }
+    ValueNode(T&& value): _value(std::move(value)) {}
 
     ValueNode(const ValueNode&) = default;
     ValueNode(ValueNode&&) = default;
@@ -177,7 +109,237 @@ class ValueNode
     Value _value = NONE;
 };
 
-}  // namespace value_tree
+class ValueTree;
+
+using TreeArray = std::vector<ValueTree>;
+using TreeObject = std::map<std::string, ValueTree>;
+
+/// Definition of `ValueTree`.
+class ValueTree
+{
+  public:
+
+    enum class State { EMPTY, VALUE, ARRAY, OBJECT };
+
+    /// Get the state of the ValueTree root.
+    State state() const { return _state; }
+
+    /// Clear the tree to an empty state.
+    void clear() {
+        _state = State::EMPTY;
+        _node = NONE;
+        _array.clear();
+        _object.clear();
+    }
+
+    /// Return false if is an empty tree.
+    operator bool() const { return state() != State::EMPTY; }
+
+  public:
+
+    /// Get ValueNode reference.
+    /// If current tree root is NOT a value, change it to ValueNode(NONE).
+    ValueNode& asValue() {
+        if (state() != State::VALUE) {
+            clear();
+            _state = State::VALUE;
+        }
+        return _node;
+    }
+
+    /// Get TreeArray reference.
+    /// If current tree root is NOT an array, change it to an empty array.
+    TreeArray& asArray() {
+        if (state() != State::ARRAY) {
+            clear();
+            _state = State::ARRAY;
+        }
+        return _array;
+    }
+
+    /// Get TreeObject reference.
+    /// If current tree root is NOT an object, change it to an empty object.
+    TreeObject& asObject() {
+        if (state() != State::OBJECT) {
+            clear();
+            _state = State::OBJECT;
+        }
+        return _object;
+    }
+
+    /// Get subtree reference at specified key.
+    /// If current tree root is NOT an object, change it to an object, and
+    /// create a new subtree at specified key.
+    ValueTree& operator[](const std::string& key) { return asObject()[key]; }
+
+    /// Get subtree reference at specified key.
+    /// If current tree root is NOT an object, change it to an object, and
+    /// create a new subtree at specified key.
+    ValueTree& operator[](const char* key) { return asObject()[key]; }
+
+  public:
+
+    /// Try to get stored value.
+    /// If state of current tree is NOT State::VALUE, return std::nullopt.
+    /// If value of current node is NOT the same as template TypeTag,
+    /// return std::nullopt.
+    template <TypeTag typeTag>
+    auto value() const -> std::optional<typename TypeOfTag<typeTag>::type> {
+        if (state() != State::VALUE) return std::nullopt;
+        return _node.value<typeTag>();
+    }
+
+    /// Try to get stored value at specified key.
+    /// If state of current tree is NOT State::OBJECT, return std::nullopt.
+    /// If key NOT found, return std::nullopt.
+    /// If value of found node is NOT the same as template TypeTag,
+    /// return std::nullopt.
+    template <TypeTag typeTag>
+    auto value(const std::string& key
+    ) const -> std::optional<typename TypeOfTag<typeTag>::type> {
+        if (state() != State::OBJECT) return std::nullopt;
+        const auto it = _object.find(key);
+        if (it == _object.end()) return std::nullopt;
+        return it->second.value<typeTag>();
+    }
+
+    /// Try to get stored value at specified path.
+    /// If state of current tree is NOT State::OBJECT, return std::nullopt.
+    /// If path NOT found, return std::nullopt.
+    /// If value of found node is NOT the same as template TypeTag,
+    /// return std::nullopt.
+    template <TypeTag typeTag, typename... Args>
+    auto value(const std::string& key, Args&&... args) const
+        -> std::optional<typename TypeOfTag<typeTag>::type> {
+        if (state() != State::OBJECT) return std::nullopt;
+        const auto it = _object.find(key);
+        if (it == _object.end()) return std::nullopt;
+        return it->second.value<typeTag>(std::forward<Args>(args)...);
+    }
+
+    /// Try to get stored value at specified index.
+    /// If state of current tree is NOT State::ARRAY, return std::nullopt.
+    /// If index NOT found, return std::nullopt.
+    /// If value of found node is NOT the same as template TypeTag,
+    /// return std::nullopt.
+    template <TypeTag typeTag>
+    auto value(size_t index
+    ) const -> std::optional<typename TypeOfTag<typeTag>::type> {
+        if (state() != State::ARRAY) return std::nullopt;
+        if (index >= _array.size()) return std::nullopt;
+        return _array[index].value<typeTag>();
+    }
+
+    /// Try to get stored value at specified path.
+    /// If state of current tree is NOT State::ARRAY, return std::nullopt.
+    /// If path NOT found, return std::nullopt.
+    /// If value of found node is NOT the same as template TypeTag,
+    /// return std::nullopt.
+    template <TypeTag typeTag, typename... Args>
+    auto value(size_t index, Args&&... args) const
+        -> std::optional<typename TypeOfTag<typeTag>::type> {
+        if (state() != State::ARRAY) return std::nullopt;
+        if (index >= _array.size()) return std::nullopt;
+        return _array[index].value<typeTag>(std::forward<Args>(args)...
+        );
+    }
+
+  public:
+
+    /// Try to get sub tree (pointer) at specified key.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    /// If key NOT found, return nullptr.
+    ValueTree* subTree(const std::string& key) {
+        if (state() != State::OBJECT) return nullptr;
+        const auto it = _object.find(key);
+        if (it == _object.end()) return nullptr;
+        return &(it->second);
+    }
+
+    /// Try to get sub tree (pointer) at specified path.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    /// If path NOT found, return nullptr.
+    template <typename... Args>
+    ValueTree* subTree(const std::string& key, Args&&... args) {
+        if (state() != State::OBJECT) return nullptr;
+        const auto it = _object.find(key);
+        if (it == _object.end()) return nullptr;
+        return it->second.subTree(std::forward<Args>(args)...);
+    }
+
+    /// Try to get sub tree (pointer) at specified index.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    /// If index NOT found, return nullptr.
+    ValueTree* subTree(size_t index) {
+        if (state() != State::ARRAY) return nullptr;
+        if (index >= _array.size()) return nullptr;
+        return &(_array[index]);
+    }
+
+    /// Try to get sub tree (pointer) at specified path.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    /// If path NOT found, return nullptr.
+    template <typename... Args>
+    ValueTree* subTree(size_t index, Args&&... args) {
+        if (state() != State::ARRAY) return nullptr;
+        if (index >= _array.size()) return nullptr;
+        return _array[index].subTree(std::forward<Args>(args)...);
+    }
+
+  public:
+
+    ~ValueTree() { clear(); }
+
+    /// Default constructor. As an empty tree.
+    ValueTree() = default;
+
+    ValueTree(const ValueNode& node): _state(State::VALUE), _node(node) {}
+    ValueTree(ValueNode&& node): _state(State::VALUE), _node(std::move(node)) {}
+    ValueTree& operator=(const ValueNode& node) {
+        asValue() = node;
+        return *this;
+    }
+    ValueTree& operator=(ValueNode&& node) {
+        asValue() = std::move(node);
+        return *this;
+    }
+
+    ValueTree(const ValueTree&) = default;
+    ValueTree(ValueTree&&) = default;
+    ValueTree& operator=(const ValueTree&) = default;
+    ValueTree& operator=(ValueTree&&) = default;
+
+    /// From std::vector to ValueTree with State::ARRAY.
+    template <typename T>
+    static ValueTree from(std::vector<T>&& vector) {
+        ValueTree tree;
+        auto& array = tree.asArray();
+        for (auto& value: vector) {
+            array.push_back(ValueTree(value));
+        }
+        return tree;
+    }
+
+    /// From std::map to ValueTree with State::OBJECT.
+    template <typename T>
+    static ValueTree from(std::map<std::string, T>&& map) {
+        ValueTree tree;
+        auto& object = tree.asObject();
+        for (auto& [key, value]: map) {
+            object[key] = ValueTree(value);
+        }
+        return tree;
+    }
+
+  private:
+
+    State _state = State::EMPTY;
+
+    ValueNode _node = NONE;
+    TreeArray _array = {};
+    TreeObject _object = {};
+};
+
 }  // namespace c2p
 
 #endif  // __C2P_VALUE_TREE_HPP__

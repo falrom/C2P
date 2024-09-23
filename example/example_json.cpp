@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
         -12, 13.14, 15.16e+17, 18.19e-20
     ],
     "lidar_2d"    : { "enable": true },
-    "lidar_3d"    : { "enable": true },
+    "lidar_3d"    : { "enable": false },
     "rgbd"        : { "enable": true },
     "array": [ "sadfsafs", 
     "asdfasdf\nsadfsadffsadf"
