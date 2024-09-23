@@ -18,8 +18,8 @@ namespace c2p {
 struct NoneValue {
     enum class _Construct { _TOKEN };
     explicit constexpr NoneValue(_Construct) noexcept {}
-    bool operator==(const NoneValue&) const { return true; }
-    bool operator!=(const NoneValue&) const { return false; }
+    constexpr bool operator==(const NoneValue&) const { return true; }
+    constexpr bool operator!=(const NoneValue&) const { return false; }
 };
 constexpr NoneValue NONE{ NoneValue::_Construct::_TOKEN };
 
