@@ -37,44 +37,53 @@
 /// ```
 
 #include "c2p/json.hpp"
+#include "text_utils.hpp"
 
 #include <sstream>
 
 namespace c2p {
 namespace json {
 
-static bool _parseWhitespace(const std::string& json, size_t& pos) {
-    if (pos >= json.size() || !std::isspace(uint8_t(json[pos]))) return false;
-    ++pos;
+static bool _parseWhitespace(const TextContext& ctx, TextPosition& pos) {
+    if (!pos.valid || !std::isspace(uint8_t(ctx.text[pos.pos]))) return false;
+    ctx.moveForward(pos);
     return true;
 }
 
-static bool _parseComment(const std::string& json, size_t& pos) {
-    if (pos + 1 >= json.size() || json[pos] != '/' || json[pos + 1] != '/') {
+static bool _parseComment(const TextContext& ctx, TextPosition& pos) {
+    auto aheadPos = pos;
+    if (!ctx.moveForward(aheadPos)   //
+        || ctx.text[pos.pos] != '/'  //
+        || ctx.text[aheadPos.pos] != '/')
+    {
         return false;
     }
-    pos += 2;
-    while (pos < json.size() && json[pos] != '\n' && json[pos] != '\r') ++pos;
+    ctx.moveNextLine(pos);
     return true;
 }
 
-static void _skipWhitespace(const std::string& json, size_t& pos) {
-    while (_parseWhitespace(json, pos) || _parseComment(json, pos));
+static void _skipWhitespace(const TextContext& ctx, TextPosition& pos) {
+    while (_parseWhitespace(ctx, pos) || _parseComment(ctx, pos));
 }
 
 static bool _parseString(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 ) {
-    ++pos;  // Skip initial quote
+    ctx.moveForward(pos);  // Skip initial quote
     std::string result;
-    while (pos < json.size() && json[pos] != '"') {
-        if (json[pos] == '\\') {
-            ++pos;
-            if (pos >= json.size()) {
-                logger.logError("Unexpected end of input in string escape.");
+    while (pos.valid && ctx.text[pos.pos] != '"') {
+        if (ctx.text[pos.pos] == '\\') {
+            if (!ctx.moveForward(pos)) {
+                logger.logError(
+                    pos.toString()
+                    + ": Unexpected end of input in string escape."
+                );
                 return false;
             }
-            switch (json[pos]) {
+            switch (ctx.text[pos.pos]) {
                 case '"': result.push_back('"'); break;
                 case '\\': result.push_back('\\'); break;
                 case '/': result.push_back('/'); break;
@@ -84,231 +93,290 @@ static bool _parseString(
                 case 'r': result.push_back('\r'); break;
                 case 't': result.push_back('\t'); break;
                 case 'u': {
-                    if (pos + 4 >= json.size()) {
-                        logger.logError("Invalid Unicode escape sequence.");
+                    auto aheadPos = pos;
+                    if (!ctx.moveForward(aheadPos, 4)) {
+                        logger.logError(
+                            pos.toString()
+                            + ": Invalid Unicode escape sequence."
+                        );
                         return false;
                     }
-                    std::string hex = json.substr(pos + 1, 4);
-                    result.push_back(
-                        static_cast<char>(std::stoi(hex, nullptr, 16))
-                    );
-                    pos += 4;
+                    ctx.moveForward(pos);
+                    result.push_back(static_cast<char>(
+                        std::stoi(std::string(ctx.slice(pos, 4)), nullptr, 16)
+                    ));
+                    ctx.moveForward(aheadPos);
+                    pos = aheadPos;
                     break;
                 }
                 default: {
-                    logger.logError("Invalid escape character.");
+                    logger.logError(
+                        pos.toString() + ": Invalid escape character."
+                    );
                     return false;
                 }
             }
         } else {
-            result.push_back(json[pos]);
+            result.push_back(ctx.text[pos.pos]);
         }
-        ++pos;
+        ctx.moveForward(pos);
     }
-    if (pos >= json.size() || json[pos] != '"') {
-        logger.logError("Unterminated string.");
+    if (!pos.valid || ctx.text[pos.pos] != '"') {
+        logger.logError(pos.toString() + ": Unterminated string.");
         return false;
     }
-    ++pos;  // Skip closing quote
+    ctx.moveForward(pos);  // Skip closing quote
     tree = result;
     return true;
 }
 
 static bool _parseValue(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 );
 
 static bool _parseObject(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 ) {
     auto& object = tree.asObject();
-    ++pos;  // Skip initial brace
-    _skipWhitespace(json, pos);
-    if (pos < json.size() && json[pos] == '}') {
+    ctx.moveForward(pos);  // Skip initial brace
+    _skipWhitespace(ctx, pos);
+    if (pos.valid && ctx.text[pos.pos] == '}') {
         // Empty object
-        ++pos;
+        ctx.moveForward(pos);
         return true;
     }
-    while (pos < json.size()) {
-        _skipWhitespace(json, pos);
+    while (pos.valid) {
+        _skipWhitespace(ctx, pos);
         ValueTree key;
-        if (!_parseString(key, json, pos, logger)) {
-            logger.logError("Failed to parse object key.");
+        if (!_parseString(key, ctx, pos, logger)) {
+            logger.logError(pos.toString() + ": Failed to parse object key.");
             return false;
         }
-        _skipWhitespace(json, pos);
-        if (pos >= json.size() || json[pos] != ':') {
-            logger.logError("Expected ':' in object.");
+        _skipWhitespace(ctx, pos);
+        if (!pos.valid || ctx.text[pos.pos] != ':') {
+            logger.logError(pos.toString() + ": Expected ':' in object.");
             return false;
         }
-        ++pos;
-        _skipWhitespace(json, pos);
+        ctx.moveForward(pos);
+        _skipWhitespace(ctx, pos);
         ValueTree& value = object[*key.value<TypeTag::STRING>()];
-        if (!_parseValue(value, json, pos, logger)) {
-            logger.logError("Failed to parse object value.");
+        if (!_parseValue(value, ctx, pos, logger)) {
+            logger.logError(pos.toString() + ": Failed to parse object value.");
             return false;
         }
-        _skipWhitespace(json, pos);
-        if (pos < json.size() && json[pos] == '}') {
-            ++pos;
+        _skipWhitespace(ctx, pos);
+        if (pos.valid && ctx.text[pos.pos] == '}') {
+            ctx.moveForward(pos);
             return true;
         }
-        if (pos >= json.size() || json[pos] != ',') {
-            logger.logError("Expected ',' or '}' in object.");
+        if (!pos.valid || ctx.text[pos.pos] != ',') {
+            logger.logError(
+                pos.toString() + ": Expected ',' or '}' in object."
+            );
             return false;
         }
-        ++pos;
-        _skipWhitespace(json, pos);
-        if (pos < json.size() && json[pos] == '}') {
-            ++pos;
+        ctx.moveForward(pos);
+        _skipWhitespace(ctx, pos);
+        if (pos.valid && ctx.text[pos.pos] == '}') {
+            ctx.moveForward(pos);
             return true;
         }
     }
-    logger.logError("Unterminated object.");
+    logger.logError(pos.toString() + ": Unterminated object.");
     return false;
 }
 
 static bool _parseArray(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 ) {
     auto& array = tree.asArray();
-    ++pos;  // Skip initial bracket
-    _skipWhitespace(json, pos);
-    if (pos < json.size() && json[pos] == ']') {
-        ++pos;
+    ctx.moveForward(pos);  // Skip initial bracket
+    _skipWhitespace(ctx, pos);
+    if (pos.valid && ctx.text[pos.pos] == ']') {
+        ctx.moveForward(pos);
         return true;
     }
-    while (pos < json.size()) {
-        _skipWhitespace(json, pos);
+    while (pos.valid) {
+        _skipWhitespace(ctx, pos);
         array.push_back(ValueTree());
-        if (!_parseValue(array.back(), json, pos, logger)) {
-            logger.logError("Failed to parse array value.");
+        if (!_parseValue(array.back(), ctx, pos, logger)) {
+            logger.logError(pos.toString() + ": Failed to parse array value.");
             return false;
         }
-        _skipWhitespace(json, pos);
-        if (pos < json.size() && json[pos] == ']') {
-            ++pos;
+        _skipWhitespace(ctx, pos);
+        if (pos.valid && ctx.text[pos.pos] == ']') {
+            ctx.moveForward(pos);
             return true;
         }
-        if (pos >= json.size() || json[pos] != ',') {
-            logger.logError("Expected ',' or ']' in array.");
+        if (!pos.valid || ctx.text[pos.pos] != ',') {
+            logger.logError(pos.toString() + ": Expected ',' or ']' in array.");
             return false;
         }
-        ++pos;
-        _skipWhitespace(json, pos);
-        if (pos < json.size() && json[pos] == ']') {
-            ++pos;
+        ctx.moveForward(pos);
+        _skipWhitespace(ctx, pos);
+        if (pos.valid && ctx.text[pos.pos] == ']') {
+            ctx.moveForward(pos);
             return true;
         }
     }
-    logger.logError("Unterminated array.");
+    logger.logError(pos.toString() + ": Unterminated array.");
     return false;
 }
 
 static bool _parseNumber(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 ) {
-    size_t start = pos;
-    if (json[pos] == '+' || json[pos] == '-') ++pos;
-    if (pos >= json.size()) {
-        logger.logError("Invalid number.");
+    auto start = pos;
+    if (ctx.text[pos.pos] == '+' || ctx.text[pos.pos] == '-') {
+        ctx.moveForward(pos);
+    }
+    if (!pos.valid) {
+        logger.logError(pos.toString() + ": Invalid number.");
         return false;
     }
-    if (json[pos] == '0') {
-        ++pos;
+    if (ctx.text[pos.pos] == '0') {
+        ctx.moveForward(pos);
     } else {
-        if (!std::isdigit(json[pos])) {
-            logger.logError("Invalid number.");
+        if (!std::isdigit(ctx.text[pos.pos])) {
+            logger.logError(pos.toString() + ": Invalid number.");
             return false;
         }
-        while (pos < json.size() && std::isdigit(json[pos])) ++pos;
+        while (pos.valid && std::isdigit(ctx.text[pos.pos])) {
+            ctx.moveForward(pos);
+        }
     }
-    if (pos < json.size() && json[pos] == '.') {
-        ++pos;
-        if (pos >= json.size() || !std::isdigit(json[pos])) {
-            logger.logError("Invalid number.");
+    if (pos.valid && ctx.text[pos.pos] == '.') {
+        ctx.moveForward(pos);
+        if (!pos.valid || !std::isdigit(ctx.text[pos.pos])) {
+            logger.logError(pos.toString() + ": Invalid number.");
             return false;
         }
-        while (pos < json.size() && std::isdigit(json[pos])) ++pos;
+        while (pos.valid && std::isdigit(ctx.text[pos.pos]))
+            ctx.moveForward(pos);
     }
-    if (pos < json.size() && (json[pos] == 'e' || json[pos] == 'E')) {
-        ++pos;
-        if (pos < json.size() && (json[pos] == '+' || json[pos] == '-')) ++pos;
-        if (pos >= json.size() || !std::isdigit(json[pos])) {
-            logger.logError("Invalid number.");
+    if (pos.valid && (ctx.text[pos.pos] == 'e' || ctx.text[pos.pos] == 'E')) {
+        if (ctx.moveForward(pos)
+            && (ctx.text[pos.pos] == '+' || ctx.text[pos.pos] == '-'))
+        {
+            ctx.moveForward(pos);
+        }
+        if (!pos.valid || !std::isdigit(ctx.text[pos.pos])) {
+            logger.logError(pos.toString() + ": Invalid number.");
             return false;
         }
-        while (pos < json.size() && std::isdigit(json[pos])) ++pos;
+        while (pos.valid && std::isdigit(ctx.text[pos.pos])) {
+            ctx.moveForward(pos);
+        }
     }
-    tree = std::stod(json.substr(start, pos - start));
+    tree = std::stod(std::string(ctx.slice(start, pos)));
     return true;
 }
 
 static bool _parseTrue(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 ) {
-    if (json.substr(pos, 4) != "true") {
-        logger.logError("Invalid value. Expected to be \"true\".");
+    if (ctx.slice(pos, 4) != "true") {
+        logger.logError(
+            pos.toString() + ": Invalid value. Expected to be \"true\"."
+        );
         return false;
     }
-    pos += 4;
+    ctx.moveForward(pos, 4);
     tree = true;
     return true;
 }
 
 static bool _parseFalse(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 ) {
-    if (json.substr(pos, 5) != "false") {
-        logger.logError("Invalid value. Expected to be \"false\".");
+    if (ctx.slice(pos, 5) != "false") {
+        logger.logError(
+            pos.toString() + ": Invalid value. Expected to be \"false\"."
+        );
         return false;
     }
-    pos += 5;
+    ctx.moveForward(pos, 5);
     tree = false;
     return true;
 }
 
 static bool _parseNull(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 ) {
-    if (json.substr(pos, 4) != "null") {
-        logger.logError("Invalid value. Expected to be \"null\".");
+    if (ctx.slice(pos, 4) != "null") {
+        logger.logError(
+            pos.toString() + ": Invalid value. Expected to be \"null\"."
+        );
         return false;
     }
-    pos += 4;
+    ctx.moveForward(pos, 4);
     tree = NONE;
     return true;
 }
 
 static bool _parseValue(
-    ValueTree& tree, const std::string& json, size_t& pos, const Logger& logger
+    ValueTree& tree,
+    const TextContext& ctx,
+    TextPosition& pos,
+    const Logger& logger
 ) {
-    if (json[pos] == '{') return _parseObject(tree, json, pos, logger);
-    if (json[pos] == '[') return _parseArray(tree, json, pos, logger);
-    if (json[pos] == '"') return _parseString(tree, json, pos, logger);
-    if (json[pos] == 't') return _parseTrue(tree, json, pos, logger);
-    if (json[pos] == 'f') return _parseFalse(tree, json, pos, logger);
-    if (json[pos] == 'n') return _parseNull(tree, json, pos, logger);
-    if (json[pos] == '+' || json[pos] == '-' || std::isdigit(json[pos]))
-        return _parseNumber(tree, json, pos, logger);
+    const auto ch = ctx.text[pos.pos];
+    if (ch == '{') return _parseObject(tree, ctx, pos, logger);
+    if (ch == '[') return _parseArray(tree, ctx, pos, logger);
+    if (ch == '"') return _parseString(tree, ctx, pos, logger);
+    if (ch == 't') return _parseTrue(tree, ctx, pos, logger);
+    if (ch == 'f') return _parseFalse(tree, ctx, pos, logger);
+    if (ch == 'n') return _parseNull(tree, ctx, pos, logger);
+    if (ch == '+' || ch == '-' || std::isdigit(ch))
+        return _parseNumber(tree, ctx, pos, logger);
     logger.logError(
-        std::string("Invalid JSON value with head: '") + json[pos] + "'."
+        pos.toString() + ": Invalid JSON value with head: '" + ch + "'."
     );
     return false;
 }
 
 ValueTree parse(const std::string& json, const Logger& logger) {
+    if (json.empty()) {
+        logger.logError("Empty JSON.");
+        return ValueTree();
+    }
+
+    TextContext ctx = { json };
+    TextPosition pos = { .valid = true, .pos = 0, .lineIdx = 0, .linePos = 0 };
+
     ValueTree tree;
-    size_t pos = 0;
-    _skipWhitespace(json, pos);
-    if (!_parseValue(tree, json, pos, logger)) {
+    _skipWhitespace(ctx, pos);
+    if (!_parseValue(tree, ctx, pos, logger)) {
         logger.logError("Failed to parse JSON.");
         return ValueTree();
     }
-    _skipWhitespace(json, pos);
-    if (pos != json.size()) {
-        logger.logWarning("Extra characters after JSON.");
+    _skipWhitespace(ctx, pos);
+
+    if (pos.valid) {
+        logger.logWarning(pos.toString() + ": Extra characters after JSON.");
     }
+
     return tree;
 }
 
