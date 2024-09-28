@@ -132,6 +132,9 @@ class ValueTree
         _object.clear();
     }
 
+    /// Return true if is an empty tree.
+    bool empty() const { return state() == State::EMPTY; }
+
     /// Return false if is an empty tree.
     operator bool() const { return state() != State::EMPTY; }
 

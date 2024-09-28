@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     "lidar_3d"    : { "enable": false },
     "rgbd"        : { "enable": true },
     "array": [ "sadfsafs", 
-    "asdfasdf\nsadfsadffsadf"
+    "asdfasdf\nsadfsadffsadf\u0040"
     ,      // allow trailing comma
     ],  // allow trailing comma
     // allow comment

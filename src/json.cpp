@@ -37,20 +37,24 @@
 /// ```
 
 #include "c2p/json.hpp"
+
 #include "text_utils.hpp"
 
+#include <cassert>
 #include <sstream>
 
 namespace c2p {
 namespace json {
 
-static bool _parseWhitespace(const TextContext& ctx, TextPosition& pos) {
-    if (!pos.valid || !std::isspace(uint8_t(ctx.text[pos.pos]))) return false;
+static bool _parseWhitespace(const TextContext& ctx, PositionInText& pos) {
+    if (!pos.valid || !std::isspace(uint8_t(ctx.text[pos.pos]))) {
+        return false;
+    }
     ctx.moveForward(pos);
     return true;
 }
 
-static bool _parseComment(const TextContext& ctx, TextPosition& pos) {
+static bool _parseComment(const TextContext& ctx, PositionInText& pos) {
     auto aheadPos = pos;
     if (!ctx.moveForward(aheadPos)   //
         || ctx.text[pos.pos] != '/'  //
@@ -58,20 +62,22 @@ static bool _parseComment(const TextContext& ctx, TextPosition& pos) {
     {
         return false;
     }
-    ctx.moveNextLine(pos);
+    ctx.moveToNextLine(pos);
     return true;
 }
 
-static void _skipWhitespace(const TextContext& ctx, TextPosition& pos) {
+static void _skipWhitespace(const TextContext& ctx, PositionInText& pos) {
     while (_parseWhitespace(ctx, pos) || _parseComment(ctx, pos));
 }
 
 static bool _parseString(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 ) {
+    assert(pos.valid);
+    assert(ctx.text[pos.pos] == '"');
     ctx.moveForward(pos);  // Skip initial quote
     std::string result;
     while (pos.valid && ctx.text[pos.pos] != '"') {
@@ -105,7 +111,6 @@ static bool _parseString(
                     result.push_back(static_cast<char>(
                         std::stoi(std::string(ctx.slice(pos, 4)), nullptr, 16)
                     ));
-                    ctx.moveForward(aheadPos);
                     pos = aheadPos;
                     break;
                 }
@@ -133,16 +138,18 @@ static bool _parseString(
 static bool _parseValue(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 );
 
 static bool _parseObject(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 ) {
+    assert(pos.valid);
+    assert(ctx.text[pos.pos] == '{');
     auto& object = tree.asObject();
     ctx.moveForward(pos);  // Skip initial brace
     _skipWhitespace(ctx, pos);
@@ -195,9 +202,11 @@ static bool _parseObject(
 static bool _parseArray(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 ) {
+    assert(pos.valid);
+    assert(ctx.text[pos.pos] == '[');
     auto& array = tree.asArray();
     ctx.moveForward(pos);  // Skip initial bracket
     _skipWhitespace(ctx, pos);
@@ -235,10 +244,11 @@ static bool _parseArray(
 static bool _parseNumber(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 ) {
-    auto start = pos;
+    assert(pos.valid);
+    const auto startPos = pos;
     if (ctx.text[pos.pos] == '+' || ctx.text[pos.pos] == '-') {
         ctx.moveForward(pos);
     }
@@ -280,16 +290,18 @@ static bool _parseNumber(
             ctx.moveForward(pos);
         }
     }
-    tree = std::stod(std::string(ctx.slice(start, pos)));
+    tree = std::stod(std::string(ctx.slice(startPos, pos)));
     return true;
 }
 
 static bool _parseTrue(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 ) {
+    assert(pos.valid);
+    assert(ctx.text[pos.pos] == 't');
     if (ctx.slice(pos, 4) != "true") {
         logger.logError(
             pos.toString() + ": Invalid value. Expected to be \"true\"."
@@ -304,9 +316,11 @@ static bool _parseTrue(
 static bool _parseFalse(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 ) {
+    assert(pos.valid);
+    assert(ctx.text[pos.pos] == 'f');
     if (ctx.slice(pos, 5) != "false") {
         logger.logError(
             pos.toString() + ": Invalid value. Expected to be \"false\"."
@@ -321,9 +335,11 @@ static bool _parseFalse(
 static bool _parseNull(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 ) {
+    assert(pos.valid);
+    assert(ctx.text[pos.pos] == 'n');
     if (ctx.slice(pos, 4) != "null") {
         logger.logError(
             pos.toString() + ": Invalid value. Expected to be \"null\"."
@@ -338,7 +354,7 @@ static bool _parseNull(
 static bool _parseValue(
     ValueTree& tree,
     const TextContext& ctx,
-    TextPosition& pos,
+    PositionInText& pos,
     const Logger& logger
 ) {
     const auto ch = ctx.text[pos.pos];
@@ -363,7 +379,9 @@ ValueTree parse(const std::string& json, const Logger& logger) {
     }
 
     TextContext ctx = { json };
-    TextPosition pos = { .valid = true, .pos = 0, .lineIdx = 0, .linePos = 0 };
+    PositionInText pos = {
+        .valid = true, .pos = 0, .lineIdx = 0, .linePos = 0
+    };
 
     ValueTree tree;
     _skipWhitespace(ctx, pos);

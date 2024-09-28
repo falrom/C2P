@@ -13,10 +13,8 @@
 namespace c2p {
 namespace ini {
 
-// TODO
-
-#if false
 /// Parse INI string into ValueTree.
+///
 /// If the input INI string is invalid, return an empty ValueTree.
 ///
 /// Extended INI Grammar:
@@ -24,14 +22,14 @@ namespace ini {
 /// - Allow no-section key-value pairs at the beginning.
 ValueTree parse(const std::string& ini, const Logger& logger = Logger());
 
-/// Serialize ValueTree into INI string.
-///
-/// If ValueTree is empty, return an empty string.
-/// Note: Since INI files do NOT support arrays and complex nesting, if the
-/// input node can NOT be converted to a valid INI format, an empty string will
-/// be returned.
-std::string dump(ValueTree& node);
-#endif
+// /// Serialize ValueTree into INI string.
+// ///
+// /// If ValueTree is empty, return an empty string.
+// ///
+// /// Note: Since INI files do NOT support arrays and complex nesting, if the
+// /// input tree can NOT be converted to a valid INI format, an empty string will
+// /// be returned.
+// std::string dump(ValueTree& tree);
 
 }  // namespace ini
 }  // namespace c2p

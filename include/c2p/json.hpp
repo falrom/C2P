@@ -14,18 +14,19 @@ namespace c2p {
 namespace json {
 
 /// Parse JSON string into ValueTree.
+///
 /// If the input JSON string is invalid, return an empty ValueTree.
 ///
 /// Extended JSON Grammar:
-/// - trailing comma is allowed
-/// - '+' is allowed for positive numbers
-/// - single-line comment starts with '//'
+/// - Allow trailing comma in arrays and objects.
+/// - Allow '+' sign for positive numbers.
+/// - Allow single-line comment starts with '//'.
 ValueTree parse(const std::string& json, const Logger& logger = Logger());
 
 /// Serialize ValueTree into JSON string.
 ///
 /// If ValueTree is empty, return an empty string.
-std::string dump(ValueTree& node, bool pretty = false, size_t indentStep = 2);
+std::string dump(ValueTree& tree, bool pretty = false, size_t indentStep = 2);
 
 }  // namespace json
 }  // namespace c2p

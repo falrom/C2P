@@ -18,7 +18,7 @@ set( CMAKE_CXX_STANDARD_REQUIRED True )
 # for C++ develop tools:
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
-# TODO: Add other build options here.
+# NOTE: Add other build options here.
 
 
 # ============================================================
@@ -124,6 +124,6 @@ message( STATUS ">>>        CMAKE_CXX_FLAGS          : ${CMAKE_CXX_FLAGS}" )
 message( STATUS ">>> [INFO] build options:")
 message( STATUS ">>>        BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 
-# TODO: Add more CMake log print here.
+# NOTE: Add more CMake log print here.
 
 message( STATUS ">>> ----------------------------------------" )
