@@ -7,6 +7,25 @@
 namespace c2p {
 namespace ini {
 
+static void _logErrorAtPos(
+    const Logger& logger,
+    const TextContext& ctx,
+    const PositionInText& pos,
+    const std::string& msg
+) {
+    logger.logError(
+        pos.toString() + ": " + msg +
+        [](const std::vector<std::string>& msgLines) {
+            std::string msg;
+            for (const auto& msgLine: msgLines) {
+                msg += "\n" + msgLine;
+            }
+            msg += "\n";
+            return msg;
+        }(getPositionMessage(ctx, pos))
+    );
+}
+
 static bool
 _parseWhitespaceInLine(const TextContext& ctx, PositionInText& pos) {
     assert(pos.valid);
@@ -19,9 +38,8 @@ _parseWhitespaceInLine(const TextContext& ctx, PositionInText& pos) {
 
 static bool _parseCommentInLine(const TextContext& ctx, PositionInText& pos) {
     assert(pos.valid);
-    if (ctx.atLineEnd(pos)           //
-        || ctx.text[pos.pos] != ';'  //
-        || ctx.text[pos.pos] != '#')
+    if (ctx.atLineEnd(pos)
+        || (ctx.text[pos.pos] != ';' && ctx.text[pos.pos] != '#'))
     {
         return false;
     }
@@ -43,8 +61,8 @@ static std::optional<std::string> _parseQuotedString(
     const auto leftQuotePos = pos;
 
     if (!ctx.moveForwardInLine(pos)) {
-        logger.logError(
-            leftQuotePos.toString() + ": Unterminated quoted string."
+        _logErrorAtPos(
+            logger, ctx, leftQuotePos, "Unterminated quoted string."
         );
         return std::nullopt;
     }
@@ -53,9 +71,11 @@ static std::optional<std::string> _parseQuotedString(
     while (ctx.text[pos.pos] != '"' && !ctx.atLineEnd(pos)) {
         if (ctx.text[pos.pos] == '\\') {
             if (!ctx.moveForwardInLine(pos)) {
-                logger.logError(
-                    pos.toString()
-                    + ": Unexpected end of input in string escape."
+                _logErrorAtPos(
+                    logger,
+                    ctx,
+                    pos,
+                    "Unexpected end of input in string escape."
                 );
                 return std::nullopt;
             }
@@ -71,9 +91,8 @@ static std::optional<std::string> _parseQuotedString(
                 case 'u': {
                     auto aheadPos = pos;
                     if (!ctx.moveForwardInLine(aheadPos, 4)) {
-                        logger.logError(
-                            pos.toString()
-                            + ": Invalid Unicode escape sequence."
+                        _logErrorAtPos(
+                            logger, ctx, pos, "Invalid Unicode escape sequence."
                         );
                         return std::nullopt;
                     }
@@ -85,8 +104,8 @@ static std::optional<std::string> _parseQuotedString(
                     break;
                 }
                 default: {
-                    logger.logError(
-                        pos.toString() + ": Invalid escape character."
+                    _logErrorAtPos(
+                        logger, ctx, pos, "Invalid escape character."
                     );
                     return std::nullopt;
                 }
@@ -98,7 +117,7 @@ static std::optional<std::string> _parseQuotedString(
     }
 
     if (ctx.text[pos.pos] != '"') {
-        logger.logError(leftQuotePos.toString() + ": Unterminated string.");
+        _logErrorAtPos(logger, ctx, leftQuotePos, "Unterminated string.");
         return std::nullopt;
     }
     ctx.moveForwardInLine(pos);  // Skip closing quote
@@ -120,8 +139,14 @@ static std::optional<std::string> _parseNoQuotedHeaderString(
 
     while (true) {
         if (ctx.text[pos.pos] == ']') break;
+        if (ctx.text[pos.pos] == ';' || ctx.text[pos.pos] == '#') {
+            _logErrorAtPos(
+                logger, ctx, pos, "Unexpected comment in section header."
+            );
+            return std::nullopt;
+        }
         if (ctx.atLineEnd(pos)) {
-            logger.logError(pos.toString() + ": No closing bracket found.");
+            _logErrorAtPos(logger, ctx, pos, "No closing bracket found.");
             return std::nullopt;
         }
         if (std::isspace(uint8_t(ctx.text[pos.pos]))) {
@@ -138,7 +163,6 @@ static std::optional<std::string> _parseNoQuotedHeaderString(
         startPos,
         whitespaceStartPos.pos == startPos.pos ? pos : whitespaceStartPos
     ));
-    ctx.moveForwardInLine(pos);  // Skip closing bracket
 
     return result;
 }
@@ -157,8 +181,12 @@ static std::optional<std::string> _parseNoQuotedKeyString(
 
     while (true) {
         if (ctx.text[pos.pos] == '=') break;
+        if (ctx.text[pos.pos] == ';' || ctx.text[pos.pos] == '#') {
+            _logErrorAtPos(logger, ctx, pos, "Unexpected comment in key.");
+            return std::nullopt;
+        }
         if (ctx.atLineEnd(pos)) {
-            logger.logError(pos.toString() + ": No '=' found.");
+            _logErrorAtPos(logger, ctx, pos, "No '=' found.");
             return std::nullopt;
         }
         if (std::isspace(uint8_t(ctx.text[pos.pos]))) {
@@ -172,8 +200,8 @@ static std::optional<std::string> _parseNoQuotedKeyString(
     }
 
     if (startPos.pos == pos.pos) {
-        logger.logError(
-            startPos.toString() + ": Empty key without quotes is not allowed."
+        _logErrorAtPos(
+            logger, ctx, startPos, "Empty key without quotes is not allowed."
         );
         return std::nullopt;
     }
@@ -222,23 +250,25 @@ static std::optional<std::string> _parseSectionHeader(
 
     const auto leftBracketPos = pos;
 
-    if (!ctx.moveForwardInLine(pos)) {
-        logger.logError(
-            leftBracketPos.toString() + ": Unterminated section header."
+    if (!ctx.moveForwardInLine(pos)) {  // Skip left bracket
+        _logErrorAtPos(
+            logger, ctx, leftBracketPos, "Unterminated section header."
         );
         return std::nullopt;
     }
     _skipWhitespaceInLine(ctx, pos);
     if (ctx.text[pos.pos] == ']') {
-        logger.logError(
-            pos.toString()
-            + ": Empty section header without quotes is not allowed."
+        _logErrorAtPos(
+            logger,
+            ctx,
+            pos,
+            "Empty section header without quotes is not allowed."
         );
         return std::nullopt;
     }
     if (ctx.atLineEnd(pos)) {
-        logger.logError(
-            leftBracketPos.toString() + ": Unterminated section header."
+        _logErrorAtPos(
+            logger, ctx, leftBracketPos, "Unterminated section header."
         );
         return std::nullopt;
     }
@@ -248,16 +278,16 @@ static std::optional<std::string> _parseSectionHeader(
     if (ctx.text[pos.pos] == '"') {
         header = _parseQuotedString(ctx, pos, logger);
         if (!header) {
-            logger.logError(
-                startPos.toString() + ": Failed to parse section header."
+            _logErrorAtPos(
+                logger, ctx, leftBracketPos, "Failed to parse section header."
             );
             return std::nullopt;
         }
     } else {
         header = _parseNoQuotedHeaderString(ctx, pos, logger);
         if (!header) {
-            logger.logError(
-                startPos.toString() + ": Failed to parse section header."
+            _logErrorAtPos(
+                logger, ctx, leftBracketPos, "Failed to parse section header."
             );
             return std::nullopt;
         }
@@ -266,18 +296,21 @@ static std::optional<std::string> _parseSectionHeader(
     const auto endPos = pos;
     _skipWhitespaceInLine(ctx, pos);
     if (ctx.text[pos.pos] != ']') {
-        logger.logError(
-            endPos.toString()
-            + ": Unterminated section header. "
-              "Expected ']' at the end of section header."
+        _logErrorAtPos(
+            logger,
+            ctx,
+            endPos,
+            "Unterminated section header. "
+            "Expected ']' at the end of section header."
         );
         return std::nullopt;
     }
+    ctx.moveForwardInLine(pos);  // Skip right bracket
 
     _skipWhitespaceInLine(ctx, pos);
     if (!ctx.atLineEnd(pos)) {
-        logger.logError(
-            pos.toString() + ": Extra characters after section header."
+        _logErrorAtPos(
+            logger, ctx, pos, "Extra characters after section header."
         );
         return std::nullopt;
     }
@@ -296,22 +329,24 @@ _parseEntry(const TextContext& ctx, PositionInText& pos, const Logger& logger) {
     if (ctx.text[pos.pos] == '"') {
         key = _parseQuotedString(ctx, pos, logger);
         if (!key) {
-            logger.logError(keyStartPos.toString() + ": Failed to parse key.");
+            _logErrorAtPos(logger, ctx, keyStartPos, "Failed to parse key.");
             return std::nullopt;
         }
         const auto keyEndPos = pos;
         _skipWhitespaceInLine(ctx, pos);
         if (ctx.text[pos.pos] != '=') {
-            logger.logError(
-                keyEndPos.toString()
-                + ": Unterminated key. Expected '=' after key."
+            _logErrorAtPos(
+                logger,
+                ctx,
+                keyEndPos,
+                "Unterminated key. Expected '=' after key."
             );
             return std::nullopt;
         }
     } else {
         key = _parseNoQuotedKeyString(ctx, pos, logger);
         if (!key) {
-            logger.logError(keyStartPos.toString() + ": Failed to parse key.");
+            _logErrorAtPos(logger, ctx, keyStartPos, "Failed to parse key.");
             return std::nullopt;
         }
     }
@@ -328,16 +363,16 @@ _parseEntry(const TextContext& ctx, PositionInText& pos, const Logger& logger) {
     if (ctx.text[pos.pos] == '"') {
         value = _parseQuotedString(ctx, pos, logger);
         if (!value) {
-            logger.logError(
-                valueStartPos.toString() + ": Failed to parse value."
+            _logErrorAtPos(
+                logger, ctx, valueStartPos, "Failed to parse value."
             );
             return std::nullopt;
         }
     } else {
         value = _parseNoQuotedValueString(ctx, pos, logger);
         if (!value) {
-            logger.logError(
-                valueStartPos.toString() + ": Failed to parse value."
+            _logErrorAtPos(
+                logger, ctx, valueStartPos, "Failed to parse value."
             );
             return std::nullopt;
         }
@@ -360,6 +395,17 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
     ValueTree tree;
     ValueTree* section = &tree;
     do {
+
+#if false
+        logger.logInfo(
+            "Parsing Line: " + std::to_string(pos.lineIdx) + " \""
+            + std::string(
+                ctx.slice(pos, ctx.lines[pos.lineIdx].lenWithoutBreaks)
+            )
+            + '"'
+        );
+#endif
+
         _skipWhitespaceInLine(ctx, pos);
         if (ctx.atLineEnd(pos)) continue;
 
@@ -372,7 +418,7 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
                 );
                 return ValueTree();
             }
-            section = &tree[*header];
+            section = &(tree[*header]);
         } else {
             auto entry = _parseEntry(ctx, pos, logger);
             if (!entry) {

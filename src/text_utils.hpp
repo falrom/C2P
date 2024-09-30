@@ -6,6 +6,7 @@
 #ifndef __C2P_TEXT_UTILS_HPP__
 #define __C2P_TEXT_UTILS_HPP__
 
+#include <cassert>
 #include <string>
 #include <vector>
 
@@ -28,33 +29,41 @@ struct PositionInText {
 /// Describes a line in a text.
 struct LineInText {
     uint32_t pos;  ///< Position of the first character in the line.
-    uint32_t len;  ///< Length of the line (including line ending character).
+    uint32_t len;  ///< Length of the line (including line break characters).
+    /// Length of the line (excluding line break characters).
+    uint32_t lenWithoutBreaks;
 };
 
 /// Split text into lines.
-/// Allowing for '\n', '\r', and '\r\n' as line endings.
-std::vector<LineInText> splitLines(const std::string& text) {
+/// Allowing for '\n', '\r', and '\r\n' as line breaks.
+inline std::vector<LineInText> splitLines(const std::string& text) {
     std::vector<LineInText> lines;
     uint32_t pos = 0;
     uint32_t len = 0;
+    uint32_t lenWithoutBreaks = 0;
     for (char c: text) {
         ++len;
         if (c == '\n') {
-            lines.push_back({ pos, len });
+            lines.push_back({ pos, len, lenWithoutBreaks });
             pos += len;
             len = 0;
+            lenWithoutBreaks = 0;
+            continue;
         } else if (c == '\r') {
             const uint32_t newPos = pos + len;
             if (newPos < text.size() && text[newPos] == '\n') {
                 ++len;
             }
-            lines.push_back({ pos, len });
+            lines.push_back({ pos, len, lenWithoutBreaks });
             pos += len;
             len = 0;
+            lenWithoutBreaks = 0;
+            continue;
         }
+        ++lenWithoutBreaks;
     }
     if (len > 0) {
-        lines.push_back({ pos, len });
+        lines.push_back({ pos, len, lenWithoutBreaks });
     }
     return lines;
 }
@@ -142,6 +151,16 @@ struct TextContext {
         return pos.valid && (pos.linePos + 1 == lines[pos.lineIdx].len);
     }
 
+    /// Move the position forward to the start of the current line.
+    bool moveToLineStart(PositionInText& pos) const {
+        if (!pos.valid) {
+            return false;
+        }
+        pos.pos = lines[pos.lineIdx].pos;
+        pos.linePos = 0;
+        return true;
+    }
+
     /// Move the position forward to the end of the current line.
     bool moveToLineEnd(PositionInText& pos) const {
         if (!pos.valid) {
@@ -188,6 +207,37 @@ struct TextContext {
         return std::string_view(text.data() + start.pos, end.pos - start.pos);
     }
 };
+
+/// Get a message marked with '^' at the position in the text.
+inline std::vector<std::string> getPositionMessage(
+    const TextContext& ctx,
+    const PositionInText& pos,
+    uint32_t maxPrefixLen = 80,
+    uint32_t maxSuffixLen = 80
+) {
+    assert(pos.valid);
+
+    std::vector<std::string> msg;
+
+    const auto& line = ctx.lines[pos.lineIdx];
+
+    const uint32_t prefixLen =
+        pos.linePos > maxPrefixLen ? maxPrefixLen : pos.linePos;
+
+    const uint32_t suffixLen = std::min(
+        line.lenWithoutBreaks > (pos.linePos + 1)
+            ? line.lenWithoutBreaks - (pos.linePos + 1)
+            : 0,
+        maxSuffixLen
+    );
+
+    msg.push_back(
+        " | " + ctx.text.substr(pos.pos - prefixLen, suffixLen + prefixLen + 1)
+    );
+    msg.push_back(" | " + std::string(prefixLen, ' ') + '^');
+
+    return msg;
+}
 
 }  // namespace c2p
 

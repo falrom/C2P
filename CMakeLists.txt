@@ -87,6 +87,11 @@ add_executable( example_json example/example_json.cpp )
 list( APPEND PROJECT_TARGETS example_json )
 target_link_libraries( example_json PRIVATE c2p )
 
+# target: exe example_ini
+add_executable( example_ini example/example_ini.cpp )
+list( APPEND PROJECT_TARGETS example_ini )
+target_link_libraries( example_ini PRIVATE c2p )
+
 
 # ============================================================
 # print info:

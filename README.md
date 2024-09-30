@@ -28,4 +28,4 @@ Finally, call the transform function to apply these `Rule`s.
 
 We treat various user inputs as the source and parse them into a common intermediate [ValueTree](include/c2p/value_tree.hpp) (composed of multiple `ValueNode`s). After that, you can define the conversion from `ValueTree` to `Config` as well as override rules for different input methods.
 
-Some tools are provided for parsing inputs, such as [JSON serialization/deserialization](include/c2p/json.hpp), command-line argument parsing (TODO), etc. All of these produce a `ValueTree` as the output.
+Some tools are provided for parsing inputs, such as [JSON serialization/deserialization](include/c2p/json.hpp), [INI serialization/deserialization](include/c2p/ini.hpp), [command-line argument parsing (TODO)](include/c2p/cli.hpp), etc. All of these produce a `ValueTree` as the output.
