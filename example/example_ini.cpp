@@ -37,6 +37,9 @@ empty info2 =  ; allow empty value string even without quotes
 
 "" = value of empty key ; allow quoted string as empty key)";
 
-    auto node = c2p::ini::parse(ini, logger);
-    std::cout << c2p::json::dump(node, true, 4) << std::endl;
+    auto tree = c2p::ini::parse(ini, logger);
+    std::cout << "---------- JSON ----------" << std::endl;
+    std::cout << c2p::json::dump(tree, true, 4) << std::endl;
+    std::cout << "---------- INI ----------" << std::endl;
+    std::cout << c2p::ini::dump(tree) << std::endl;
 }

@@ -50,6 +50,18 @@ class ValueNode
     /// Get TypeTag of stored value.
     TypeTag typeTag() const { return static_cast<TypeTag>(_value.index()); }
 
+    /// If the stored value is NONE.
+    bool isNone() const { return typeTag() == TypeTag::NONE; }
+
+    /// If the stored value is BOOL.
+    bool isBool() const { return typeTag() == TypeTag::BOOL; }
+
+    /// If the stored value is NUMBER.
+    bool isNumber() const { return typeTag() == TypeTag::NUMBER; }
+
+    /// If the stored value is STRING.
+    bool isString() const { return typeTag() == TypeTag::STRING; }
+
     /// Try to get stored value.
     /// If current value is NOT the same as template TypeTag,
     /// return std::nullopt.
@@ -132,11 +144,20 @@ class ValueTree
         _object.clear();
     }
 
-    /// Return true if is an empty tree.
-    bool empty() const { return state() == State::EMPTY; }
-
     /// Return false if is an empty tree.
     operator bool() const { return state() != State::EMPTY; }
+
+    /// If the tree state is State::EMPTY.
+    bool isEmpty() const { return state() == State::EMPTY; }
+
+    /// If the tree state is State::VALUE.
+    bool isValue() const { return state() == State::VALUE; }
+
+    /// If the tree state is State::ARRAY.
+    bool isArray() const { return state() == State::ARRAY; }
+
+    /// If the tree state is State::OBJECT.
+    bool isObject() const { return state() == State::OBJECT; }
 
   public:
 

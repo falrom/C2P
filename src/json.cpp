@@ -133,7 +133,7 @@ static bool _parseString(
                 case 'n': result.push_back('\n'); break;
                 case 'r': result.push_back('\r'); break;
                 case 't': result.push_back('\t'); break;
-                case 'u': {
+                case 'u': {  // TODO: Support Unicode escape
                     auto aheadPos = pos;
                     if (!ctx.moveForwardInLine(aheadPos, 4)) {
                         _logErrorAtPos(
@@ -465,7 +465,7 @@ ValueTree parse(const std::string& json, const Logger& logger) {
 }
 
 static void _escapeString(const std::string& input, std::stringstream& stream) {
-    for (char c: input) {
+    for (const char c: input) {
         switch (c) {
             case '"': stream << "\\\""; break;
             case '\\': stream << "\\\\"; break;
@@ -520,7 +520,7 @@ static void _dump(
                 bool first = true;
                 bool isEmpty = true;
                 for (const auto& value: array) {
-                    if (value.empty()) continue;
+                    if (value.isEmpty()) continue;
                     if (first) first = false;
                     else stream << ',';
                     stream << '\n' << std::string(newIndent, ' ');
@@ -533,7 +533,7 @@ static void _dump(
                 stream << '[';
                 bool first = true;
                 for (const auto& value: array) {
-                    if (value.empty()) continue;
+                    if (value.isEmpty()) continue;
                     if (first) first = false;
                     else stream << ',';
                     _dump(value, stream, pretty, newIndent, indentStep);
@@ -549,7 +549,7 @@ static void _dump(
                 bool first = true;
                 bool isEmpty = true;
                 for (const auto& [key, value]: object) {
-                    if (value.empty()) continue;
+                    if (value.isEmpty()) continue;
                     if (first) first = false;
                     else stream << ',';
                     stream << '\n' << std::string(newIndent, ' ');
@@ -566,7 +566,7 @@ static void _dump(
                 stream << '{';
                 bool first = true;
                 for (const auto& [key, value]: object) {
-                    if (value.empty()) continue;
+                    if (value.isEmpty()) continue;
                     if (first) first = false;
                     else stream << ',';
                     stream << '"' << key << '"' << ':';

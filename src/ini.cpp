@@ -3,6 +3,7 @@
 #include "text_utils.hpp"
 
 #include <cassert>
+#include <sstream>
 
 namespace c2p {
 namespace ini {
@@ -93,7 +94,7 @@ static std::optional<std::string> _parseQuotedString(
                 case 'n': result.push_back('\n'); break;
                 case 'r': result.push_back('\r'); break;
                 case 't': result.push_back('\t'); break;
-                case 'u': {
+                case 'u': {  // TODO: Support Unicode escape
                     auto aheadPos = pos;
                     if (!ctx.moveForwardInLine(aheadPos, 4)) {
                         _logErrorAtPos(
@@ -442,6 +443,128 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
     } while (ctx.moveToNextLine(pos));
 
     return tree;
+}
+
+static void _dumpString(const std::string& str, std::stringstream& stream) {
+    if (str.empty()) {
+        stream << "\"\"";
+        return;
+    }
+    std::string result;
+    bool needQuote = false;
+    for (const char c: str) {
+        switch (c) {
+            case ';': {
+                result.push_back(c);
+                needQuote = true;
+            } break;
+            case '#': {
+                result.push_back(c);
+                needQuote = true;
+            } break;
+            case '"': {
+                result += ("\\\"");
+                needQuote = true;
+            } break;
+            case '\\': {
+                result += ("\\\\");
+                needQuote = true;
+            } break;
+            case '\b': {
+                result += ("\\b");
+                needQuote = true;
+            } break;
+            case '\f': {
+                result += ("\\f");
+                needQuote = true;
+            } break;
+            case '\n': {
+                result += ("\\n");
+                needQuote = true;
+            } break;
+            case '\r': {
+                result += ("\\r");
+                needQuote = true;
+            } break;
+            case '\t': {
+                result += ("\\t");
+                needQuote = true;
+            } break;
+            default: {
+                result.push_back(c);
+            } break;
+        }
+    }
+    if (needQuote) stream << '"';
+    stream << result;
+    if (needQuote) stream << '"';
+}
+
+static void
+_dumpSectionHeader(const std::string& header, std::stringstream& stream) {
+    stream << '[';
+    _dumpString(header, stream);
+    stream << "]\n";
+}
+
+static void _dumpEntry(
+    const std::string& key, const ValueNode& node, std::stringstream& stream
+) {
+    _dumpString(key, stream);
+    stream << '=';
+    switch (node.typeTag()) {
+        case TypeTag::NONE: {
+            stream << "null";
+        } break;
+
+        case TypeTag::BOOL: {
+            stream << (*node.value<TypeTag::BOOL>() ? "true" : "false");
+        } break;
+
+        case TypeTag::NUMBER: {
+            stream << *node.value<TypeTag::NUMBER>();
+        } break;
+
+        case TypeTag::STRING: {
+            _dumpString(*node.value<TypeTag::STRING>(), stream);
+        } break;
+    }
+    stream << '\n';
+}
+
+std::string dump(const ValueTree& tree) {
+    if (tree.isEmpty()) return "";
+    if (!tree.isObject()) return "";
+
+    std::stringstream stream;
+
+    const auto& object = *tree.getObject();
+    std::map<std::string, const TreeObject*> sections;
+
+    // dump global entries & collect sections
+    for (const auto& [key, value]: object) {
+        if (value.isEmpty()) continue;
+        if (value.isArray()) return "";  // INI does not support array
+        if (value.isObject()) {
+            sections[key] = value.getObject();
+            continue;
+        }
+        assert(value.isValue());
+        _dumpEntry(key, *value.getValue(), stream);
+    }
+
+    // dump sections
+    for (const auto& [header, entries]: sections) {
+        stream << '\n';
+        _dumpSectionHeader(header, stream);
+        for (const auto& [key, value]: *entries) {
+            if (value.isEmpty()) continue;
+            if (!value.isValue()) return "";  // must be key-value entry
+            _dumpEntry(key, *value.getValue(), stream);
+        }
+    }
+
+    return stream.str();
 }
 
 }  // namespace ini

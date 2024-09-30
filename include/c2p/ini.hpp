@@ -23,15 +23,15 @@ namespace ini {
 /// - Allow empty value string even without quotes.
 ValueTree parse(const std::string& ini, const Logger& logger = Logger());
 
-// /// Serialize ValueTree into INI string.
-// ///
-// /// If ValueTree is empty, return an empty string.
-// /// If some subtrees are empty, they will not be serialized.
-// ///
-// /// Note: Since INI files do NOT support arrays and complex nesting, if the
-// /// input tree can NOT be converted to a valid INI format, an empty string will
-// /// be returned.
-// std::string dump(ValueTree& tree);
+/// Serialize ValueTree into INI string.
+///
+/// If ValueTree is empty, return an empty string.
+/// If some subtrees are empty, they will not be serialized.
+///
+/// Note: Since INI files do NOT support arrays and complex nesting, if the
+/// input tree can NOT be converted to a valid INI format, an empty string will
+/// be returned.
+std::string dump(const ValueTree& tree);
 
 }  // namespace ini
 }  // namespace c2p

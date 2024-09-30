@@ -31,6 +31,6 @@ int main(int argc, char* argv[]) {
 }
 )";
 
-    auto node = c2p::json::parse(json, logger);
-    std::cout << c2p::json::dump(node, true, 4) << std::endl;
+    auto tree = c2p::json::parse(json, logger);
+    std::cout << c2p::json::dump(tree, true, 4) << std::endl;
 }
