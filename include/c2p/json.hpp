@@ -26,6 +26,7 @@ ValueTree parse(const std::string& json, const Logger& logger = Logger());
 /// Serialize ValueTree into JSON string.
 ///
 /// If ValueTree is empty, return an empty string.
+/// If some subtrees are empty, they will not be serialized.
 std::string dump(ValueTree& tree, bool pretty = false, size_t indentStep = 2);
 
 }  // namespace json

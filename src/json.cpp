@@ -449,24 +449,25 @@ static void _dump(
 
         case ValueTree::State::ARRAY: {
             auto& array = tree.asArray();
-            if (array.empty()) {
-                stream << "[]";
-                break;
-            }
             if (pretty) {
                 stream << '[';
                 bool first = true;
+                bool isEmpty = true;
                 for (auto& value: array) {
+                    if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
                     stream << '\n' << std::string(newIndent, ' ');
                     _dump(value, stream, pretty, newIndent, indentStep);
+                    isEmpty = false;
                 }
-                stream << '\n' << std::string(indent, ' ') << ']';
+                if (!isEmpty) stream << '\n' << std::string(indent, ' ');
+                stream << ']';
             } else {
                 stream << '[';
                 bool first = true;
                 for (auto& value: array) {
+                    if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
                     _dump(value, stream, pretty, newIndent, indentStep);
@@ -477,26 +478,27 @@ static void _dump(
 
         case ValueTree::State::OBJECT: {
             auto& object = tree.asObject();
-            if (object.empty()) {
-                stream << "{}";
-                break;
-            }
             if (pretty) {
                 stream << '{';
                 bool first = true;
+                bool isEmpty = true;
                 for (auto& [key, value]: object) {
+                    if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
                     stream << '\n'
                            << std::string(newIndent, ' ') << '"' << key << '"'
                            << ": ";
                     _dump(value, stream, pretty, newIndent, indentStep);
+                    isEmpty = false;
                 }
-                stream << '\n' << std::string(indent, ' ') << '}';
+                if (!isEmpty) stream << '\n' << std::string(indent, ' ');
+                stream << '}';
             } else {
                 stream << '{';
                 bool first = true;
                 for (auto& [key, value]: object) {
+                    if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
                     stream << '"' << key << '"' << ':';
