@@ -161,12 +161,10 @@ static bool _parseString(
         ctx.moveForwardInLine(pos);
     }
     if (ctx.text[pos.pos] != '"') {
-        auto lineEndPos = pos;
-        ctx.moveToLineEndExcludingBreaks(lineEndPos);
         _logErrorAtPos(
             logger,
             ctx,
-            lineEndPos,
+            pos,
             "Unterminated string. "
             "Expected closing quote '\"' in same line."
         );
@@ -205,7 +203,10 @@ static bool _parseObject(
         _skipWhitespace(ctx, pos);
         if (ctx.text[pos.pos] != '"') {
             _logErrorAtPos(
-                logger, ctx, pos, "Expected quoted string as object key."
+                logger,
+                ctx,
+                pos,
+                "Expected quoted string with '\"' as object key."
             );
             return false;
         }
@@ -232,13 +233,19 @@ static bool _parseObject(
             );
             return false;
         }
+        const auto afterValuePos = pos;
         _skipWhitespace(ctx, pos);
         if (pos.valid && ctx.text[pos.pos] == '}') {
             ctx.moveForward(pos);
             return true;
         }
         if (!pos.valid || ctx.text[pos.pos] != ',') {
-            _logErrorAtPos(logger, ctx, pos, "Expected ',' or '}' in object.");
+            _logErrorAtPos(
+                logger,
+                ctx,
+                afterValuePos,
+                "Expected ',' or '}' at the end of object."
+            );
             return false;
         }
         ctx.moveForward(pos);

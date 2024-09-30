@@ -243,10 +243,15 @@ inline std::vector<std::string> getPositionMessage(
         maxSuffixLen
     );
 
-    msg.push_back(
-        " | " + ctx.text.substr(pos.pos - prefixLen, suffixLen + prefixLen + 1)
-    );
-    msg.push_back(" | " + std::string(prefixLen, ' ') + '^');
+    std::string textLine =
+        " | " + ctx.text.substr(pos.pos - prefixLen, suffixLen + prefixLen + 1);
+    std::replace(textLine.begin(), textLine.end(), '\n', ' ');
+    std::replace(textLine.begin(), textLine.end(), '\r', ' ');
+
+    std::string markLine = " | " + std::string(prefixLen, ' ') + '^';
+
+    msg.push_back(textLine);
+    msg.push_back(markLine);
 
     return msg;
 }

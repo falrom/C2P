@@ -122,12 +122,10 @@ static std::optional<std::string> _parseQuotedString(
     }
 
     if (ctx.text[pos.pos] != '"') {
-        auto lineEndPos = pos;
-        ctx.moveToLineEndExcludingBreaks(lineEndPos);
         _logErrorAtPos(
             logger,
             ctx,
-            lineEndPos,
+            pos,
             "Unterminated string. "
             "Expected closing quote '\"' in same line."
         );
