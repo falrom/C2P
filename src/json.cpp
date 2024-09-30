@@ -552,9 +552,11 @@ static void _dump(
                     if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
-                    stream << '\n'
-                           << std::string(newIndent, ' ') << '"' << key << '"'
-                           << ": ";
+                    stream << '\n' << std::string(newIndent, ' ');
+                    _dump(
+                        ValueTree(key), stream, pretty, newIndent, indentStep
+                    );
+                    stream << ": ";
                     _dump(value, stream, pretty, newIndent, indentStep);
                     isEmpty = false;
                 }
