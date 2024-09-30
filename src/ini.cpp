@@ -284,7 +284,6 @@ static std::optional<std::string> _parseSectionHeader(
         return std::nullopt;
     }
 
-    const auto startPos = pos;
     std::optional<std::string> header;
     if (ctx.text[pos.pos] == '"') {
         header = _parseQuotedString(ctx, pos, logger);

@@ -13,10 +13,13 @@ project( C2P )
 
 # specify the C++ standard
 set( CMAKE_CXX_STANDARD 17 )
-set( CMAKE_CXX_STANDARD_REQUIRED True )
+set( CMAKE_CXX_STANDARD_REQUIRED TRUE )
 
 # for C++ develop tools:
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
+
+# whether to build examples:
+option( C2P_BUILD_EXAMPLES "Build examples" TRUE )
 
 # NOTE: Add other build options here.
 
@@ -72,25 +75,29 @@ if( PROJECT_CMAKE_TIME )
     target_compile_definitions( c2p PRIVATE PROJECT_CMAKE_TIME="${PROJECT_CMAKE_TIME}" )
 endif()
 
-# target: exe example_transform
-add_executable( example_transform example/example_transform.cpp )
-list( APPEND PROJECT_TARGETS example_transform )
-target_link_libraries( example_transform PRIVATE c2p )
+if( C2P_BUILD_EXAMPLES )
 
-# target: exe example_value_tree
-add_executable( example_value_tree example/example_value_tree.cpp )
-list( APPEND PROJECT_TARGETS example_value_tree )
-target_link_libraries( example_value_tree PRIVATE c2p )
+    # target: exe example_transform
+    add_executable( example_transform example/example_transform.cpp )
+    list( APPEND PROJECT_TARGETS example_transform )
+    target_link_libraries( example_transform PRIVATE c2p )
 
-# target: exe example_json
-add_executable( example_json example/example_json.cpp )
-list( APPEND PROJECT_TARGETS example_json )
-target_link_libraries( example_json PRIVATE c2p )
+    # target: exe example_value_tree
+    add_executable( example_value_tree example/example_value_tree.cpp )
+    list( APPEND PROJECT_TARGETS example_value_tree )
+    target_link_libraries( example_value_tree PRIVATE c2p )
 
-# target: exe example_ini
-add_executable( example_ini example/example_ini.cpp )
-list( APPEND PROJECT_TARGETS example_ini )
-target_link_libraries( example_ini PRIVATE c2p )
+    # target: exe example_json
+    add_executable( example_json example/example_json.cpp )
+    list( APPEND PROJECT_TARGETS example_json )
+    target_link_libraries( example_json PRIVATE c2p )
+
+    # target: exe example_ini
+    add_executable( example_ini example/example_ini.cpp )
+    list( APPEND PROJECT_TARGETS example_ini )
+    target_link_libraries( example_ini PRIVATE c2p )
+
+endif()
 
 
 # ============================================================
@@ -126,8 +133,9 @@ message( STATUS ">>>        CMAKE_C_FLAGS            : ${CMAKE_C_FLAGS}" )
 message( STATUS ">>>        CMAKE_CXX_FLAGS          : ${CMAKE_CXX_FLAGS}" )
 
 # build options:
-message( STATUS ">>> [INFO] build options:")
-message( STATUS ">>>        BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
+message( STATUS ">>> [INFO] build options:" )
+message( STATUS ">>>        BUILD_SHARED_LIBS : ${BUILD_SHARED_LIBS}" )
+message( STATUS ">>>        C2P_BUILD_EXAMPLES: ${C2P_BUILD_EXAMPLES}" )
 
 # NOTE: Add more CMake log print here.
 
