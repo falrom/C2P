@@ -20,6 +20,7 @@ namespace ini {
 /// Extended INI Grammar:
 /// - Allow single-line comments starting with ';' or '#'.
 /// - Allow no-section key-value pairs at the beginning.
+/// - Allow empty value string even without quotes.
 ValueTree parse(const std::string& ini, const Logger& logger = Logger());
 
 // /// Serialize ValueTree into INI string.

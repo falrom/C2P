@@ -25,7 +25,7 @@ age=  30
 city  =  New York   
 
 [ section 1 ] ; allow spaces before and after section header string
-email = "name\u0040fake.com"
+email = "name\u0040fake.com" ; same as "name@fake.com"
 home addr = 银河系 - 太阳系 - 地球: 北极点   
 
 [""] ; allow quoted string as empty section

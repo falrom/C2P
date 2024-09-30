@@ -14,18 +14,18 @@ const c2p::Logger logger{
 int main(int argc, char* argv[]) {
 
     const std::string json = R"(
-    ////////allow comment
+    // allow comment
 {
     "numbers": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
         , +11,  // allow '+' for positive numbers
         -12, 13.14, 15.16e+17, 18.19e-20
     ],
-    "lidar_2d"    : { "enable": true },
-    "lidar_3d"    : { "enable": false },
-    "rgbd"        : { "enable": true },
-    "array": [ "sadfsafs", 
+    "sensor1": { "enable": true },
+    "sensor2": { "enable": false },
+    "sensor3": { "enable": true },
+    "array": [ "sadfsafs",    
     "asdfasdf\nsadfsadffsadf\u0040"
-    ,      // allow trailing comma
+    ,  // allow trailing comma
     ],  // allow trailing comma
     // allow comment
 }
