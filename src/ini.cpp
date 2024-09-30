@@ -60,9 +60,14 @@ static std::optional<std::string> _parseQuotedString(
 
     const auto leftQuotePos = pos;
 
+    // Skip initial quote
     if (!ctx.moveForwardInLine(pos)) {
         _logErrorAtPos(
-            logger, ctx, leftQuotePos, "Unterminated quoted string."
+            logger,
+            ctx,
+            leftQuotePos,
+            "Unterminated quoted string. "
+            "Expected closing quote '\"' in same line."
         );
         return std::nullopt;
     }
@@ -117,7 +122,15 @@ static std::optional<std::string> _parseQuotedString(
     }
 
     if (ctx.text[pos.pos] != '"') {
-        _logErrorAtPos(logger, ctx, leftQuotePos, "Unterminated string.");
+        auto lineEndPos = pos;
+        ctx.moveToLineEndExcludingBreaks(lineEndPos);
+        _logErrorAtPos(
+            logger,
+            ctx,
+            lineEndPos,
+            "Unterminated string. "
+            "Expected closing quote '\"' in same line."
+        );
         return std::nullopt;
     }
     ctx.moveForwardInLine(pos);  // Skip closing quote
@@ -400,7 +413,7 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
         logger.logInfo(
             "Parsing Line: " + std::to_string(pos.lineIdx) + " \""
             + std::string(
-                ctx.slice(pos, ctx.lines[pos.lineIdx].lenWithoutBreaks)
+                ctx.slice(pos, ctx.lines[pos.lineIdx].lenExcludingBreaks)
             )
             + '"'
         );

@@ -31,7 +31,7 @@ struct LineInText {
     uint32_t pos;  ///< Position of the first character in the line.
     uint32_t len;  ///< Length of the line (including line break characters).
     /// Length of the line (excluding line break characters).
-    uint32_t lenWithoutBreaks;
+    uint32_t lenExcludingBreaks;
 };
 
 /// Split text into lines.
@@ -40,30 +40,30 @@ inline std::vector<LineInText> splitLines(const std::string& text) {
     std::vector<LineInText> lines;
     uint32_t pos = 0;
     uint32_t len = 0;
-    uint32_t lenWithoutBreaks = 0;
+    uint32_t lenExcludingBreaks = 0;
     for (char c: text) {
         ++len;
         if (c == '\n') {
-            lines.push_back({ pos, len, lenWithoutBreaks });
+            lines.push_back({ pos, len, lenExcludingBreaks });
             pos += len;
             len = 0;
-            lenWithoutBreaks = 0;
+            lenExcludingBreaks = 0;
             continue;
         } else if (c == '\r') {
             const uint32_t newPos = pos + len;
             if (newPos < text.size() && text[newPos] == '\n') {
                 ++len;
             }
-            lines.push_back({ pos, len, lenWithoutBreaks });
+            lines.push_back({ pos, len, lenExcludingBreaks });
             pos += len;
             len = 0;
-            lenWithoutBreaks = 0;
+            lenExcludingBreaks = 0;
             continue;
         }
-        ++lenWithoutBreaks;
+        ++lenExcludingBreaks;
     }
     if (len > 0) {
-        lines.push_back({ pos, len, lenWithoutBreaks });
+        lines.push_back({ pos, len, lenExcludingBreaks });
     }
     return lines;
 }
@@ -171,6 +171,18 @@ struct TextContext {
         return true;
     }
 
+    /// Move the position forward to the end of the current line, excluding line
+    /// break characters.
+    bool moveToLineEndExcludingBreaks(PositionInText& pos) const {
+        if (!pos.valid) {
+            return false;
+        }
+        pos.pos =
+            lines[pos.lineIdx].pos + lines[pos.lineIdx].lenExcludingBreaks - 1;
+        pos.linePos = lines[pos.lineIdx].lenExcludingBreaks - 1;
+        return true;
+    }
+
     /// Move the position forward to the start of the next line.
     /// If there is no next line:
     /// - the position will be moved to the end of the text.
@@ -225,8 +237,8 @@ inline std::vector<std::string> getPositionMessage(
         pos.linePos > maxPrefixLen ? maxPrefixLen : pos.linePos;
 
     const uint32_t suffixLen = std::min(
-        line.lenWithoutBreaks > (pos.linePos + 1)
-            ? line.lenWithoutBreaks - (pos.linePos + 1)
+        line.lenExcludingBreaks > (pos.linePos + 1)
+            ? line.lenExcludingBreaks - (pos.linePos + 1)
             : 0,
         maxSuffixLen
     );

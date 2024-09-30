@@ -46,6 +46,25 @@
 namespace c2p {
 namespace json {
 
+static void _logErrorAtPos(
+    const Logger& logger,
+    const TextContext& ctx,
+    const PositionInText& pos,
+    const std::string& msg
+) {
+    logger.logError(
+        pos.toString() + ": " + msg +
+        [](const std::vector<std::string>& msgLines) {
+            std::string msg;
+            for (const auto& msgLine: msgLines) {
+                msg += "\n" + msgLine;
+            }
+            msg += "\n";
+            return msg;
+        }(getPositionMessage(ctx, pos))
+    );
+}
+
 static bool _parseWhitespace(const TextContext& ctx, PositionInText& pos) {
     if (!pos.valid || !std::isspace(uint8_t(ctx.text[pos.pos]))) {
         return false;
@@ -78,14 +97,30 @@ static bool _parseString(
 ) {
     assert(pos.valid);
     assert(ctx.text[pos.pos] == '"');
-    ctx.moveForward(pos);  // Skip initial quote
+
+    const auto leftQuotePos = pos;
+
+    // Skip initial quote
+    if (!ctx.moveForwardInLine(pos)) {
+        _logErrorAtPos(
+            logger,
+            ctx,
+            leftQuotePos,
+            "Unterminated quoted string. "
+            "Expected closing quote '\"' in same line."
+        );
+        return false;
+    }
+
     std::string result;
-    while (pos.valid && ctx.text[pos.pos] != '"') {
+    while (ctx.text[pos.pos] != '"' && !ctx.atLineEnd(pos)) {
         if (ctx.text[pos.pos] == '\\') {
-            if (!ctx.moveForward(pos)) {
-                logger.logError(
-                    pos.toString()
-                    + ": Unexpected end of input in string escape."
+            if (!ctx.moveForwardInLine(pos)) {
+                _logErrorAtPos(
+                    logger,
+                    ctx,
+                    pos,
+                    "Unexpected end of input in string escape."
                 );
                 return false;
             }
@@ -100,14 +135,13 @@ static bool _parseString(
                 case 't': result.push_back('\t'); break;
                 case 'u': {
                     auto aheadPos = pos;
-                    if (!ctx.moveForward(aheadPos, 4)) {
-                        logger.logError(
-                            pos.toString()
-                            + ": Invalid Unicode escape sequence."
+                    if (!ctx.moveForwardInLine(aheadPos, 4)) {
+                        _logErrorAtPos(
+                            logger, ctx, pos, "Invalid Unicode escape sequence."
                         );
                         return false;
                     }
-                    ctx.moveForward(pos);
+                    ctx.moveForwardInLine(pos);
                     result.push_back(static_cast<char>(
                         std::stoi(std::string(ctx.slice(pos, 4)), nullptr, 16)
                     ));
@@ -115,8 +149,8 @@ static bool _parseString(
                     break;
                 }
                 default: {
-                    logger.logError(
-                        pos.toString() + ": Invalid escape character."
+                    _logErrorAtPos(
+                        logger, ctx, pos, "Invalid escape character."
                     );
                     return false;
                 }
@@ -124,13 +158,22 @@ static bool _parseString(
         } else {
             result.push_back(ctx.text[pos.pos]);
         }
-        ctx.moveForward(pos);
+        ctx.moveForwardInLine(pos);
     }
-    if (!pos.valid || ctx.text[pos.pos] != '"') {
-        logger.logError(pos.toString() + ": Unterminated string.");
+    if (ctx.text[pos.pos] != '"') {
+        auto lineEndPos = pos;
+        ctx.moveToLineEndExcludingBreaks(lineEndPos);
+        _logErrorAtPos(
+            logger,
+            ctx,
+            lineEndPos,
+            "Unterminated string. "
+            "Expected closing quote '\"' in same line."
+        );
         return false;
     }
     ctx.moveForward(pos);  // Skip closing quote
+
     tree = result;
     return true;
 }
@@ -160,21 +203,33 @@ static bool _parseObject(
     }
     while (pos.valid) {
         _skipWhitespace(ctx, pos);
+        if (ctx.text[pos.pos] != '"') {
+            _logErrorAtPos(
+                logger, ctx, pos, "Expected quoted string as object key."
+            );
+            return false;
+        }
+        const auto keyStartPos = pos;
         ValueTree key;
         if (!_parseString(key, ctx, pos, logger)) {
-            logger.logError(pos.toString() + ": Failed to parse object key.");
+            _logErrorAtPos(
+                logger, ctx, keyStartPos, "Failed to parse object key."
+            );
             return false;
         }
         _skipWhitespace(ctx, pos);
         if (!pos.valid || ctx.text[pos.pos] != ':') {
-            logger.logError(pos.toString() + ": Expected ':' in object.");
+            _logErrorAtPos(logger, ctx, pos, "Expected ':' in object.");
             return false;
         }
         ctx.moveForward(pos);
         _skipWhitespace(ctx, pos);
+        const auto valueStartPos = pos;
         ValueTree& value = object[*key.value<TypeTag::STRING>()];
         if (!_parseValue(value, ctx, pos, logger)) {
-            logger.logError(pos.toString() + ": Failed to parse object value.");
+            _logErrorAtPos(
+                logger, ctx, valueStartPos, "Failed to parse object value."
+            );
             return false;
         }
         _skipWhitespace(ctx, pos);
@@ -183,9 +238,7 @@ static bool _parseObject(
             return true;
         }
         if (!pos.valid || ctx.text[pos.pos] != ',') {
-            logger.logError(
-                pos.toString() + ": Expected ',' or '}' in object."
-            );
+            _logErrorAtPos(logger, ctx, pos, "Expected ',' or '}' in object.");
             return false;
         }
         ctx.moveForward(pos);
@@ -195,7 +248,7 @@ static bool _parseObject(
             return true;
         }
     }
-    logger.logError(pos.toString() + ": Unterminated object.");
+    _logErrorAtPos(logger, ctx, pos, "Unterminated object.");
     return false;
 }
 
@@ -216,9 +269,12 @@ static bool _parseArray(
     }
     while (pos.valid) {
         _skipWhitespace(ctx, pos);
+        const auto valueStartPos = pos;
         array.push_back(ValueTree());
         if (!_parseValue(array.back(), ctx, pos, logger)) {
-            logger.logError(pos.toString() + ": Failed to parse array value.");
+            _logErrorAtPos(
+                logger, ctx, valueStartPos, "Failed to parse array value."
+            );
             return false;
         }
         _skipWhitespace(ctx, pos);
@@ -227,7 +283,7 @@ static bool _parseArray(
             return true;
         }
         if (!pos.valid || ctx.text[pos.pos] != ',') {
-            logger.logError(pos.toString() + ": Expected ',' or ']' in array.");
+            _logErrorAtPos(logger, ctx, pos, "Expected ',' or ']' in array.");
             return false;
         }
         ctx.moveForward(pos);
@@ -237,7 +293,7 @@ static bool _parseArray(
             return true;
         }
     }
-    logger.logError(pos.toString() + ": Unterminated array.");
+    _logErrorAtPos(logger, ctx, pos, "Unterminated array.");
     return false;
 }
 
@@ -253,14 +309,14 @@ static bool _parseNumber(
         ctx.moveForward(pos);
     }
     if (!pos.valid) {
-        logger.logError(pos.toString() + ": Invalid number.");
+        _logErrorAtPos(logger, ctx, pos, "Invalid number.");
         return false;
     }
     if (ctx.text[pos.pos] == '0') {
         ctx.moveForward(pos);
     } else {
         if (!std::isdigit(ctx.text[pos.pos])) {
-            logger.logError(pos.toString() + ": Invalid number.");
+            _logErrorAtPos(logger, ctx, pos, "Invalid number.");
             return false;
         }
         while (pos.valid && std::isdigit(ctx.text[pos.pos])) {
@@ -270,7 +326,7 @@ static bool _parseNumber(
     if (pos.valid && ctx.text[pos.pos] == '.') {
         ctx.moveForward(pos);
         if (!pos.valid || !std::isdigit(ctx.text[pos.pos])) {
-            logger.logError(pos.toString() + ": Invalid number.");
+            _logErrorAtPos(logger, ctx, pos, "Invalid number.");
             return false;
         }
         while (pos.valid && std::isdigit(ctx.text[pos.pos]))
@@ -283,7 +339,7 @@ static bool _parseNumber(
             ctx.moveForward(pos);
         }
         if (!pos.valid || !std::isdigit(ctx.text[pos.pos])) {
-            logger.logError(pos.toString() + ": Invalid number.");
+            _logErrorAtPos(logger, ctx, pos, "Invalid number.");
             return false;
         }
         while (pos.valid && std::isdigit(ctx.text[pos.pos])) {
@@ -303,8 +359,8 @@ static bool _parseTrue(
     assert(pos.valid);
     assert(ctx.text[pos.pos] == 't');
     if (ctx.slice(pos, 4) != "true") {
-        logger.logError(
-            pos.toString() + ": Invalid value. Expected to be \"true\"."
+        _logErrorAtPos(
+            logger, ctx, pos, "Invalid value. Expected to be \"true\"."
         );
         return false;
     }
@@ -322,8 +378,8 @@ static bool _parseFalse(
     assert(pos.valid);
     assert(ctx.text[pos.pos] == 'f');
     if (ctx.slice(pos, 5) != "false") {
-        logger.logError(
-            pos.toString() + ": Invalid value. Expected to be \"false\"."
+        _logErrorAtPos(
+            logger, ctx, pos, "Invalid value. Expected to be \"false\"."
         );
         return false;
     }
@@ -341,8 +397,8 @@ static bool _parseNull(
     assert(pos.valid);
     assert(ctx.text[pos.pos] == 'n');
     if (ctx.slice(pos, 4) != "null") {
-        logger.logError(
-            pos.toString() + ": Invalid value. Expected to be \"null\"."
+        _logErrorAtPos(
+            logger, ctx, pos, "Invalid value. Expected to be \"null\"."
         );
         return false;
     }
@@ -366,8 +422,11 @@ static bool _parseValue(
     if (ch == 'n') return _parseNull(tree, ctx, pos, logger);
     if (ch == '+' || ch == '-' || std::isdigit(ch))
         return _parseNumber(tree, ctx, pos, logger);
-    logger.logError(
-        pos.toString() + ": Invalid JSON value with head: '" + ch + "'."
+    _logErrorAtPos(
+        logger,
+        ctx,
+        pos,
+        std::string("Invalid JSON value with head: '") + ch + "'."
     );
     return false;
 }
@@ -392,7 +451,7 @@ ValueTree parse(const std::string& json, const Logger& logger) {
     _skipWhitespace(ctx, pos);
 
     if (pos.valid) {
-        logger.logWarning(pos.toString() + ": Extra characters after JSON.");
+        _logErrorAtPos(logger, ctx, pos, "Extra characters after JSON.");
     }
 
     return tree;
