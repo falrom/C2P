@@ -480,7 +480,7 @@ static void _escapeString(const std::string& input, std::stringstream& stream) {
 }
 
 static void _dump(
-    ValueTree& tree,
+    const ValueTree& tree,
     std::stringstream& stream,
     bool pretty,
     size_t indent,
@@ -491,7 +491,7 @@ static void _dump(
         case ValueTree::State::EMPTY: break;
 
         case ValueTree::State::VALUE: {
-            const auto& node = tree.asValue();
+            const auto& node = *tree.getValue();
             switch (node.typeTag()) {
                 case TypeTag::NONE: {
                     stream << "null";
@@ -514,12 +514,12 @@ static void _dump(
         } break;
 
         case ValueTree::State::ARRAY: {
-            auto& array = tree.asArray();
+            const auto& array = *tree.getArray();
             if (pretty) {
                 stream << '[';
                 bool first = true;
                 bool isEmpty = true;
-                for (auto& value: array) {
+                for (const auto& value: array) {
                     if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
@@ -532,7 +532,7 @@ static void _dump(
             } else {
                 stream << '[';
                 bool first = true;
-                for (auto& value: array) {
+                for (const auto& value: array) {
                     if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
@@ -543,12 +543,12 @@ static void _dump(
         } break;
 
         case ValueTree::State::OBJECT: {
-            auto& object = tree.asObject();
+            const auto& object = *tree.getObject();
             if (pretty) {
                 stream << '{';
                 bool first = true;
                 bool isEmpty = true;
-                for (auto& [key, value]: object) {
+                for (const auto& [key, value]: object) {
                     if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
@@ -563,7 +563,7 @@ static void _dump(
             } else {
                 stream << '{';
                 bool first = true;
-                for (auto& [key, value]: object) {
+                for (const auto& [key, value]: object) {
                     if (value.empty()) continue;
                     if (first) first = false;
                     else stream << ',';
@@ -576,7 +576,7 @@ static void _dump(
     }
 }
 
-std::string dump(ValueTree& tree, bool pretty, size_t indentStep) {
+std::string dump(const ValueTree& tree, bool pretty, size_t indentStep) {
     std::stringstream stream;
     _dump(tree, stream, pretty, 0, indentStep);
     return stream.str();

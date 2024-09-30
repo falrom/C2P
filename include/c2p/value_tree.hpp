@@ -140,6 +140,42 @@ class ValueTree
 
   public:
 
+    /// Get ValueNode pointer.
+    /// If state of current tree is NOT State::VALUE, return nullptr.
+    ValueNode* getValue() {
+        return (state() == State::VALUE) ? &_node : nullptr;
+    }
+
+    /// Get ValueNode pointer.
+    /// If state of current tree is NOT State::VALUE, return nullptr.
+    const ValueNode* getValue() const {
+        return (state() == State::VALUE) ? &_node : nullptr;
+    }
+
+    /// Get TreeArray pointer.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    TreeArray* getArray() {
+        return (state() == State::ARRAY) ? &_array : nullptr;
+    }
+
+    /// Get TreeArray pointer.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    const TreeArray* getArray() const {
+        return (state() == State::ARRAY) ? &_array : nullptr;
+    }
+
+    /// Get TreeObject pointer.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    TreeObject* getObject() {
+        return (state() == State::OBJECT) ? &_object : nullptr;
+    }
+
+    /// Get TreeObject pointer.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    const TreeObject* getObject() const {
+        return (state() == State::OBJECT) ? &_object : nullptr;
+    }
+
     /// Get ValueNode reference.
     /// If current tree root is NOT a value, change it to ValueNode(NONE).
     ValueNode& asValue() {
@@ -181,6 +217,13 @@ class ValueTree
     ValueTree& operator[](const char* key) { return asObject()[key]; }
 
   public:
+
+    /// Try to get TypeTag of stored value.
+    /// If state of current tree is NOT State::VALUE, return std::nullopt.
+    std::optional<TypeTag> typeTag() const {
+        if (state() != State::VALUE) return std::nullopt;
+        return _node.typeTag();
+    }
 
     /// Try to get stored value.
     /// If state of current tree is NOT State::VALUE, return std::nullopt.
@@ -243,8 +286,7 @@ class ValueTree
         -> std::optional<typename TypeOfTag<typeTag>::type> {
         if (state() != State::ARRAY) return std::nullopt;
         if (index >= _array.size()) return std::nullopt;
-        return _array[index].value<typeTag>(std::forward<Args>(args)...
-        );
+        return _array[index].value<typeTag>(std::forward<Args>(args)...);
     }
 
   public:
@@ -253,6 +295,16 @@ class ValueTree
     /// If state of current tree is NOT State::OBJECT, return nullptr.
     /// If key NOT found, return nullptr.
     ValueTree* subTree(const std::string& key) {
+        if (state() != State::OBJECT) return nullptr;
+        const auto it = _object.find(key);
+        if (it == _object.end()) return nullptr;
+        return &(it->second);
+    }
+
+    /// Try to get sub tree (pointer) at specified key.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    /// If key NOT found, return nullptr.
+    const ValueTree* subTree(const std::string& key) const {
         if (state() != State::OBJECT) return nullptr;
         const auto it = _object.find(key);
         if (it == _object.end()) return nullptr;
@@ -270,10 +322,30 @@ class ValueTree
         return it->second.subTree(std::forward<Args>(args)...);
     }
 
+    /// Try to get sub tree (pointer) at specified path.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    /// If path NOT found, return nullptr.
+    template <typename... Args>
+    const ValueTree* subTree(const std::string& key, Args&&... args) const {
+        if (state() != State::OBJECT) return nullptr;
+        const auto it = _object.find(key);
+        if (it == _object.end()) return nullptr;
+        return it->second.subTree(std::forward<Args>(args)...);
+    }
+
     /// Try to get sub tree (pointer) at specified index.
     /// If state of current tree is NOT State::ARRAY, return nullptr.
     /// If index NOT found, return nullptr.
     ValueTree* subTree(size_t index) {
+        if (state() != State::ARRAY) return nullptr;
+        if (index >= _array.size()) return nullptr;
+        return &(_array[index]);
+    }
+
+    /// Try to get sub tree (pointer) at specified index.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    /// If index NOT found, return nullptr.
+    const ValueTree* subTree(size_t index) const {
         if (state() != State::ARRAY) return nullptr;
         if (index >= _array.size()) return nullptr;
         return &(_array[index]);
@@ -284,6 +356,16 @@ class ValueTree
     /// If path NOT found, return nullptr.
     template <typename... Args>
     ValueTree* subTree(size_t index, Args&&... args) {
+        if (state() != State::ARRAY) return nullptr;
+        if (index >= _array.size()) return nullptr;
+        return _array[index].subTree(std::forward<Args>(args)...);
+    }
+
+    /// Try to get sub tree (pointer) at specified path.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    /// If path NOT found, return nullptr.
+    template <typename... Args>
+    const ValueTree* subTree(size_t index, Args&&... args) const {
         if (state() != State::ARRAY) return nullptr;
         if (index >= _array.size()) return nullptr;
         return _array[index].subTree(std::forward<Args>(args)...);
