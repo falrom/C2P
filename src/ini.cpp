@@ -94,17 +94,64 @@ static std::optional<std::string> _parseQuotedString(
                 case 'n': result.push_back('\n'); break;
                 case 'r': result.push_back('\r'); break;
                 case 't': result.push_back('\t'); break;
-                case 'u': {  // TODO: Support Unicode escape
+                case 'u': {
                     auto aheadPos = pos;
-                    if (!ctx.moveForwardInLine(aheadPos, 4)) {
-                        _logErrorAtPos(
-                            logger, ctx, pos, "Invalid Unicode escape sequence."
-                        );
-                        return std::nullopt;
+                    for (int idx = 0; idx < 4; ++idx) {
+                        if (!ctx.moveForwardInLine(aheadPos)) {
+                            _logErrorAtPos(
+                                logger,
+                                ctx,
+                                pos,
+                                "Unexpected end of input in Unicode escape. "
+                                "Need 4 Hex digits like: \"\\uHHHH\"."
+                            );
+                            return std::nullopt;
+                        }
+                        if (!std::isxdigit(ctx.text[aheadPos.pos])) {
+                            _logErrorAtPos(
+                                logger,
+                                ctx,
+                                aheadPos,
+                                "Invalid Unicode escape character. "
+                                "Need 4 Hex digits like: \"\\uHHHH\"."
+                            );
+                            return std::nullopt;
+                        }
                     }
                     ctx.moveForwardInLine(pos);
-                    result.push_back(static_cast<char>(
-                        std::stoi(std::string(ctx.slice(pos, 4)), nullptr, 16)
+                    result += unicodeToUtf8(uint32_t(
+                        std::stoul(std::string(ctx.slice(pos, 4)), nullptr, 16)
+                    ));
+                    pos = aheadPos;
+                    break;
+                }
+                case 'U': {
+                    auto aheadPos = pos;
+                    for (int idx = 0; idx < 8; ++idx) {
+                        if (!ctx.moveForwardInLine(aheadPos)) {
+                            _logErrorAtPos(
+                                logger,
+                                ctx,
+                                pos,
+                                "Unexpected end of input in Unicode escape. "
+                                "Need 8 Hex digits like: \"\\UHHHHHHHH\"."
+                            );
+                            return std::nullopt;
+                        }
+                        if (!std::isxdigit(ctx.text[aheadPos.pos])) {
+                            _logErrorAtPos(
+                                logger,
+                                ctx,
+                                aheadPos,
+                                "Invalid Unicode escape character. "
+                                "Need 8 Hex digits like: \"\\UHHHHHHHH\"."
+                            );
+                            return std::nullopt;
+                        }
+                    }
+                    ctx.moveForwardInLine(pos);
+                    result += unicodeToUtf8(uint32_t(
+                        std::stoul(std::string(ctx.slice(pos, 8)), nullptr, 16)
                     ));
                     pos = aheadPos;
                     break;

@@ -256,6 +256,31 @@ inline std::vector<std::string> getPositionMessage(
     return msg;
 }
 
+/// Trans Unicode code point to UTF-8 bytes.
+inline std::string unicodeToUtf8(uint32_t codePoint) {
+    std::string utf8;
+    if (codePoint <= 0x7F) {
+        // 1-byte sequence
+        utf8.push_back(static_cast<char>(codePoint));
+    } else if (codePoint <= 0x7FF) {
+        // 2-byte sequence
+        utf8.push_back(static_cast<char>(0xC0 | ((codePoint >> 6) & 0x1F)));
+        utf8.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+    } else if (codePoint <= 0xFFFF) {
+        // 3-byte sequence
+        utf8.push_back(static_cast<char>(0xE0 | ((codePoint >> 12) & 0x0F)));
+        utf8.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F)));
+        utf8.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+    } else if (codePoint <= 0x10FFFF) {
+        // 4-byte sequence
+        utf8.push_back(static_cast<char>(0xF0 | ((codePoint >> 18) & 0x07)));
+        utf8.push_back(static_cast<char>(0x80 | ((codePoint >> 12) & 0x3F)));
+        utf8.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F)));
+        utf8.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+    }
+    return utf8;
+}
+
 }  // namespace c2p
 
 #endif  // __C2P_TEXT_UTILS_HPP__
