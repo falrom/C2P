@@ -95,7 +95,6 @@ class Parser
   public:
 
     /// Parse command line arguments into ValueTree.
-    /// Should be called after `construct()`, and `isValid()` must return true.
     /// If the input arguments are invalid, return an empty ValueTree.
     ValueTree
     parse(int argc, const char* const argv[], const Logger& logger = Logger());
@@ -116,10 +115,22 @@ class Parser
     std::string _command;
     std::optional<std::string> _description;
 
+    std::vector<FlagArgument> _flagArgs;
+    std::map<std::string, size_t> _flagArgsNameTable;
+    std::map<char, size_t> _flagArgsShortNameTable;
+
+    std::vector<ValueArgument> _valueArgs;
+    std::map<std::string, size_t> _valueArgsNameTable;
+    std::map<char, size_t> _valueArgsShortNameTable;
+
     uint32_t _MinPositionalArgNum = 0;
     uint32_t _MaxPositionalArgNum = 0;
 
     std::map<std::string, Parser> _subParsers;
+
+    /// If the current command is a sub command, need to record the names of the
+    /// parent commands here in hierarchical order.
+    std::vector<std::string> _preCommands;
 
   public:
 
@@ -147,18 +158,23 @@ class Parser
         const Logger& logger = Logger()
     );
 
+    /// Parse command line arguments into ValueTree.
+    /// Return `true` if the input arguments are valid.
+    bool _parse(
+        ValueTree& tree,
+        int argc,
+        const char* const argv[],
+        const Logger& logger = Logger()
+    );
+
     /// Generate help message of specified command group.
     ///
     /// @param[in] subCommands If you want to get the help information of a sub
     /// command, you need to specify the names in hierarchical order.
-    /// @param[in] preCommands If the current command group is a sub command,
-    /// you need to specify the names of the parent commands in hierarchical
-    /// order.
     /// @return Return std::nullopt if the specified command group does not
     /// exist.
     std::optional<std::string> _getHelp(
         const std::vector<std::string>& subCommands = {},
-        const std::vector<std::string>& preCommands = {},
         const Logger& logger = Logger()
     ) const;
 };

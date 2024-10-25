@@ -97,6 +97,11 @@ if( C2P_BUILD_EXAMPLES )
     list( APPEND PROJECT_TARGETS example_ini )
     target_link_libraries( example_ini PRIVATE c2p )
 
+    # target: exe example_cli
+    add_executable( example_cli example/example_cli.cpp )
+    list( APPEND PROJECT_TARGETS example_cli )
+    target_link_libraries( example_cli PRIVATE c2p )
+
 endif()
 
 
