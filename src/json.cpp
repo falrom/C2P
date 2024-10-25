@@ -52,7 +52,7 @@ static void _logErrorAtPos(
     const PositionInText& pos,
     const std::string& msg
 ) {
-    logger.logError(
+    logger.error(
         pos.toString() + ": " + msg +
         [](const std::vector<std::string>& msgLines) {
             std::string msg;
@@ -487,7 +487,7 @@ static bool _parseValue(
 
 ValueTree parse(const std::string& json, const Logger& logger) {
     if (json.empty()) {
-        logger.logError("Empty JSON.");
+        logger.error("Empty JSON.");
         return ValueTree();
     }
 
@@ -499,7 +499,7 @@ ValueTree parse(const std::string& json, const Logger& logger) {
     ValueTree tree;
     _skipWhitespace(ctx, pos);
     if (!_parseValue(tree, ctx, pos, logger)) {
-        logger.logError("Failed to parse JSON.");
+        logger.error("Failed to parse JSON.");
         return ValueTree();
     }
     _skipWhitespace(ctx, pos);

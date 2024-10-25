@@ -38,11 +38,11 @@ int main(int argc, char* argv[]) {
                 auto& myConfig = static_cast<const MyConfig&>(config);
                 auto& myParam = static_cast<MyParam&>(param);
                 if (!myConfig.cA) {
-                    logger.logError("cA was not set.");
+                    logger.error("cA was not set.");
                     return false;
                 }
                 if (!myConfig.cB) {
-                    logger.logError("cB was not set.");
+                    logger.error("cB was not set.");
                     return false;
                 }
                 myParam.pAxB = int((*myConfig.cA) * (*myConfig.cB));
@@ -57,11 +57,11 @@ int main(int argc, char* argv[]) {
                 auto& myConfig = static_cast<const MyConfig&>(config);
                 auto& myParam = static_cast<MyParam&>(param);
                 if (!myConfig.cC) {
-                    logger.logError("cC was not set.");
+                    logger.error("cC was not set.");
                     return false;
                 }
                 if ((*myConfig.cC).empty()) {
-                    logger.logError("cC was empty.");
+                    logger.error("cC was empty.");
                     return false;
                 }
                 myParam.pC = *myConfig.cC;

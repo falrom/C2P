@@ -29,9 +29,9 @@ struct Logger {
           logInfoCallback(logInfoCallback) {}
 
     // clang-format off
-    void logError  (const std::string& logStr) const { if (logErrorCallback  ) { logErrorCallback(logStr);   } }
-    void logWarning(const std::string& logStr) const { if (logWarningCallback) { logWarningCallback(logStr); } }
-    void logInfo   (const std::string& logStr) const { if (logInfoCallback   ) { logInfoCallback(logStr);    } }
+    void error  (const std::string& logStr) const { if (logErrorCallback  ) { logErrorCallback(logStr);   } }
+    void warning(const std::string& logStr) const { if (logWarningCallback) { logWarningCallback(logStr); } }
+    void info   (const std::string& logStr) const { if (logInfoCallback   ) { logInfoCallback(logStr);    } }
     // clang-format on
 };
 

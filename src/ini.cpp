@@ -14,7 +14,7 @@ static void _logErrorAtPos(
     const PositionInText& pos,
     const std::string& msg
 ) {
-    logger.logError(
+    logger.error(
         pos.toString() + ": " + msg +
         [](const std::vector<std::string>& msgLines) {
             std::string msg;
@@ -441,7 +441,7 @@ _parseEntry(const TextContext& ctx, PositionInText& pos, const Logger& logger) {
 
 ValueTree parse(const std::string& ini, const Logger& logger) {
     if (ini.empty()) {
-        logger.logError("Empty INI.");
+        logger.error("Empty INI.");
         return ValueTree();
     }
 
@@ -455,7 +455,7 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
     do {
 
 #if false
-        logger.logInfo(
+        logger.info(
             "Parsing Line: " + std::to_string(pos.lineIdx) + " \""
             + std::string(
                 ctx.slice(pos, ctx.lines[pos.lineIdx].lenExcludingBreaks)
@@ -471,7 +471,7 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
         if (ctx.text[pos.pos] == '[') {
             auto header = _parseSectionHeader(ctx, pos, logger);
             if (!header) {
-                logger.logError(
+                logger.error(
                     lineStartPos.toString() + ": Failed to parse section."
                 );
                 return ValueTree();
@@ -480,7 +480,7 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
         } else {
             auto entry = _parseEntry(ctx, pos, logger);
             if (!entry) {
-                logger.logError(
+                logger.error(
                     lineStartPos.toString() + ": Failed to parse entry."
                 );
                 return ValueTree();

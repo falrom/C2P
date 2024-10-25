@@ -55,13 +55,13 @@ inline bool doTransform(
 ) {
     for (const auto& rule: rules) {
         if (!rule.transform) {
-            logger.logWarning(
+            logger.warning(
                 "Empty rule with description: \"" + rule.description + "\""
             );
             continue;
         }
         if (!rule.transform(config, param, logger)) {
-            logger.logError(
+            logger.error(
                 "Rule failed with description: \"" + rule.description + "\""
             );
             return false;
