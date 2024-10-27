@@ -99,8 +99,9 @@ class Parser
 
     /// Parse command line arguments into ValueTree.
     /// If the input arguments are invalid, return an empty ValueTree.
-    ValueTree
-    parse(int argc, const char* const argv[], const Logger& logger = Logger());
+    ValueTree parse(
+        int argc, const char* const argv[], const Logger& logger = Logger()
+    ) const;
 
     /// Generate help message of specified command group.
     ///
@@ -168,7 +169,7 @@ class Parser
         int argc,
         const char* const argv[],
         const Logger& logger = Logger()
-    );
+    ) const;
 
     /// Generate help message of specified command group.
     ///

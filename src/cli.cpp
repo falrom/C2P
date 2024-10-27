@@ -373,7 +373,7 @@ static bool _parseValue(
 
 bool Parser::_parse(
     ValueTree& tree, int argc, const char* const argv[], const Logger& logger
-) {
+) const {
     auto& object = tree.asObject();
     object["command"] = argv[0];
     if (argc == 1) return true;
@@ -484,16 +484,48 @@ bool Parser::_parse(
             if (arg.size() == 2) {
                 // should be: "-n"
                 const char shortName = arg[1];
+
                 const auto flagIter = _flagArgsShortNameTable.find(shortName);
-                if (flagIter == _flagArgsShortNameTable.end()) {
-                    logger.error(
-                        commandStr
-                        + ": Unknown flag argument short name: " + shortName
-                    );
-                    return false;
+                if (flagIter != _flagArgsShortNameTable.end()) {
+                    flagArgs.emplace_back(_flagArgs[flagIter->second].name);
+                    continue;
                 }
-                flagArgs.emplace_back(_flagArgs[flagIter->second].name);
-                continue;
+
+                const auto valueIter = _valueArgsShortNameTable.find(shortName);
+                if (valueIter != _valueArgsShortNameTable.end()) {
+                    const auto& valueArg = _valueArgs[valueIter->second];
+                    ++argIdx;
+                    if (argIdx >= argc) {
+                        logger.error(
+                            commandStr
+                            + ": Missing value for argument: " + shortName
+                        );
+                        return false;
+                    }
+                    const auto value = std::string(argv[argIdx]);
+                    ValueNode node;
+                    if (!_parseValue(node, valueArg.typeTag, value, logger)) {
+                        logger.error(
+                            commandStr
+                            + ": Failed to parse value for argument: "
+                            + shortName
+                            + " (expected type: " + to_string(valueArg.typeTag)
+                            + ", actual value: " + value
+                        );
+                        return false;
+                    }
+                    if (valueArg.multiple) {
+                        valueArgs[valueArg.name].asArray().emplace_back(node);
+                    } else {
+                        valueArgs[valueArg.name] = node;
+                    }
+                    continue;
+                }
+
+                logger.error(
+                    commandStr + ": Unknown argument short name: " + shortName
+                );
+                return false;
             }
 
             // arg.size >= 3, should be: "-nml", multiple flag arguments
@@ -564,7 +596,7 @@ bool Parser::_parse(
 }
 
 ValueTree
-Parser::parse(int argc, const char* const argv[], const Logger& logger) {
+Parser::parse(int argc, const char* const argv[], const Logger& logger) const {
     if (argc < 1) return ValueTree();
     ValueTree tree;
     if (!_parse(tree, argc, argv, logger)) return ValueTree();
