@@ -82,6 +82,9 @@ struct CommandGroup {
     /// Maximum allowed number of positional arguments.
     uint32_t MaxPositionalArgNum = 0;
 
+    /// Description of the positional arguments.
+    std::optional<std::string> positionalArgDescription;
+
     /// List of sub commands.
     std::vector<CommandGroup> subCommands;
 };
@@ -111,6 +114,7 @@ class Parser
     /// exist.
     std::optional<std::string> getHelp(
         const std::vector<std::string>& subCommands = {},
+        bool enableAnsiFormat = true,
         const Logger& logger = Logger()
     ) const;
 
@@ -173,14 +177,10 @@ class Parser
 
     /// Generate help message of specified command group.
     ///
-    /// @param[in] subCommands If you want to get the help information of a sub
-    /// command, you need to specify the names in hierarchical order.
     /// @return Return std::nullopt if the specified command group does not
     /// exist.
-    std::optional<std::string> _getHelp(
-        const std::vector<std::string>& subCommands = {},
-        const Logger& logger = Logger()
-    ) const;
+    std::optional<std::string>
+    _getHelp(bool enableAnsiFormat = true, const Logger& logger = Logger()) const;
 };
 
 }  // namespace cli

@@ -3,6 +3,7 @@
 #include "text_utils.hpp"
 
 #include <cassert>
+#include <sstream>
 
 namespace c2p {
 namespace cli {
@@ -601,6 +602,107 @@ Parser::parse(int argc, const char* const argv[], const Logger& logger) const {
     ValueTree tree;
     if (!_parse(tree, argc, argv, logger)) return ValueTree();
     return tree;
+}
+
+std::optional<std::string>
+Parser::_getHelp(bool enableAnsiFormat, const Logger& logger) const {
+
+    constexpr auto indent = "  ";
+
+    const auto fmtBold = enableAnsiFormat ? FMT_BOLD : "";
+    const auto fmtReset = enableAnsiFormat ? FMT_RESET : "";
+
+    const std::string preCommandStr = [this]() {
+        std::string str;
+        for (const auto& preCommand: _preCommands) {
+            str += preCommand + ' ';
+        }
+        return str;
+    }();
+    const std::string commandStr = preCommandStr + _command;
+
+    std::vector<size_t> requiredValueArgIdxs;
+    std::vector<size_t> optionalValueArgIdxs;
+
+    for (size_t idx = 0; idx < _valueArgs.size(); ++idx) {
+        const auto& valueArg = _valueArgs[idx];
+        if (valueArg.required && !valueArg.defaultValue.has_value()) {
+            requiredValueArgIdxs.push_back(idx);
+        } else {
+            optionalValueArgIdxs.push_back(idx);
+        }
+    }
+
+    std::stringstream help;
+
+    help << fmtBold << "Usage:" << fmtReset << "\n\n";
+    help << indent << commandStr;
+
+    for (const auto& valueArgIdx: requiredValueArgIdxs) {
+        const auto& valueArg = _valueArgs[valueArgIdx];
+        if (valueArg.shortName) {
+            help << " -" << *valueArg.shortName;
+        } else {
+            help << " --" << valueArg.name;
+        }
+        help << " <" << to_string(valueArg.typeTag) << ">";
+    }
+
+    for (const auto& valueArgIdx: optionalValueArgIdxs) {
+        const auto& valueArg = _valueArgs[valueArgIdx];
+        if (valueArg.shortName) {
+            help << " [-" << *valueArg.shortName;
+        } else {
+            help << " [--" << valueArg.name;
+        }
+        help << " <" << to_string(valueArg.typeTag) << ">]";
+    }
+
+    for (const auto& flagArg: _flagArgs) {
+        if (flagArg.shortName) {
+            help << " [-" << *flagArg.shortName << "]";
+        } else {
+            help << " [--" << flagArg.name << "]";
+        }
+    }
+
+    for (size_t idx = 0; idx < _MinPositionalArgNum; ++idx) {
+        help << " <positionalArg" << idx << ">";
+    }
+
+    if (_MaxPositionalArgNum > _MinPositionalArgNum) {
+        const uint32_t leftPositionalArgNum =
+            _MaxPositionalArgNum - _MinPositionalArgNum;
+        if (leftPositionalArgNum == 1) {
+            help << " [positionalArg" << _MinPositionalArgNum << "]";
+        } else {
+            help << " [positionalArg" << _MinPositionalArgNum << "..."
+                 << (_MaxPositionalArgNum - 1) << "]";
+        }
+    }
+
+    // TODO: sub commands
+
+    // TODO: descriptions
+
+    return help.str();
+}
+
+std::optional<std::string> Parser::getHelp(
+    const std::vector<std::string>& subCommands,
+    bool enableAnsiFormat,
+    const Logger& logger
+) const {
+    const Parser* parser = this;
+    for (const auto& subCommand: subCommands) {
+        const auto subParserIter = parser->_subParsers.find(subCommand);
+        if (subParserIter == parser->_subParsers.end()) {
+            logger.error("Unknown sub command: " + subCommand);
+            return std::nullopt;
+        }
+        parser = &subParserIter->second;
+    }
+    return parser->_getHelp(enableAnsiFormat, logger);
 }
 
 }  // namespace cli

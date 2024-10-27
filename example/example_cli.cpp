@@ -34,10 +34,10 @@ int main(int argc, char* argv[]) {
                 .valueArgs = {
                     { .name = "nums",   .shortName = 'n', .typeTag = c2p::TypeTag::NUMBER, .multiple=true,   .description = "Specify a number."         },
                     { .name = "input",  .shortName = 'i', .typeTag = c2p::TypeTag::STRING, .required = true, .description = "Specify input file path."  },
-                    { .name = "output", .shortName = 'o', .typeTag = c2p::TypeTag::STRING,                   .description = "Specify output file path." },
+                    { .name = "output",                   .typeTag = c2p::TypeTag::STRING,                   .description = "Specify output file path." },
                 },
                 .MinPositionalArgNum = 2,
-                .MaxPositionalArgNum = 3,
+                .MaxPositionalArgNum = 6,
             },
         }
     };
@@ -45,10 +45,13 @@ int main(int argc, char* argv[]) {
 
     const auto parser = c2p::cli::Parser::constructFrom(cg, logger);
 
+    std::cout << (*(*parser).getHelp({}, true, logger)) << "\n\n";
+    std::cout << (*(*parser).getHelp({ "sub_cmd" }, true, logger)) << "\n\n";
+
     const char* const args[] = {
-        "root_cmd",    "sub_cmd", "-l",           "position1", "-n",
-        "1e3",         "-hv",     "-n",           "123",       "--input",
-        "~/input.ini", "-o",      "./output.exe", "position2",
+        "root_cmd",    "sub_cmd",  "-l",           "position1", "-n",
+        "1e3",         "-hv",      "-n",           "123",       "--input",
+        "~/input.ini", "--output", "./output.exe", "position2",
     };
 
     const auto tree =
