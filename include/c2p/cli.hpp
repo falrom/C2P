@@ -49,6 +49,9 @@ struct ValueArgument {
 
     std::optional<ValueNode> defaultValue;
 
+    /// If the argument is required.
+    /// - If also has a default value, the flag is ignored.
+    /// - If also specified as multiple, means at least one is required.
     bool required = false;
 
     /// If the argument can be used multiple times.

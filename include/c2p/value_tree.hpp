@@ -39,6 +39,17 @@ struct TypeOfTag {
     using type = std::variant_alternative_t<size_t(typeTag), Value>;
 };
 
+/// Convert TypeTag to string.
+inline std::string to_string(TypeTag typeTag) {
+    switch (typeTag) {
+        case TypeTag::NONE: return "NONE";
+        case TypeTag::BOOL: return "BOOL";
+        case TypeTag::NUMBER: return "NUMBER";
+        case TypeTag::STRING: return "STRING";
+        default: return "UNKNOWN";
+    }
+}
+
 /// Definition of `ValueTree` node which stores a value of an indeterminate
 /// type. A `ValueTree` is organized by `ArrayNode` and `ObjectNode`. The
 /// leaves of the `ValueTree` are all of `ValueNode` type, storing the actual
