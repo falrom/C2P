@@ -1,5 +1,5 @@
 #include <c2p/cli.hpp>
-#include <c2p/ini.hpp>
+#include <c2p/json.hpp>
 #include <iostream>
 #include <optional>
 #include <vector>
@@ -14,32 +14,45 @@ const c2p::Logger logger{
 
 int main(int argc, char* argv[]) {
 
-    c2p::cli::CommandGroup a = {
-        .command = "git",
-        .description = "Git is a free and balabalballablab.",
+    // clang-format off
+    c2p::cli::CommandGroup cg = {
+        .command = "root_cmd",
+        .description = "This is a CLI parser exapmle.",
         .flagArgs = {
             { .name = "version", .shortName = 'v', .description = "Show version information." },
             { .name = "help",    .shortName = 'h', .description = "Show help information."    },
         },
-        .valueArgs = {
-            { .name = "num", .shortName = 'n', .description = "Specify the command to execute." },
-        },
-        .MinPositionalArgNum = 0,
-        .MaxPositionalArgNum = 0,
         .subCommands = {
             {
-                .command = "git",
-                .description = "Git is a free and balabalballablab.",
+                .command = "sub_cmd",
+                .description = "This is a sub command.",
                 .flagArgs = {
                     { .name = "version", .shortName = 'v', .description = "Show version information." },
                     { .name = "help",    .shortName = 'h', .description = "Show help information."    },
+                    { .name = "list",    .shortName = 'l', .description = "List all items."           },
                 },
                 .valueArgs = {
-                    { .name = "num", .shortName = 'n', .description = "Specify the command to execute." },
+                    { .name = "nums",   .shortName = 'n', .typeTag = c2p::TypeTag::NUMBER, .multiple=true,   .description = "Specify a number."         },
+                    { .name = "input",  .shortName = 'i', .typeTag = c2p::TypeTag::STRING, .required = true, .description = "Specify input file path."  },
+                    { .name = "output", .shortName = 'o', .typeTag = c2p::TypeTag::STRING,                   .description = "Specify output file path." },
                 },
-                .MinPositionalArgNum = 0,
-                .MaxPositionalArgNum = 0,
+                .MinPositionalArgNum = 2,
+                .MaxPositionalArgNum = 3,
             },
         }
     };
+    // clang-format on
+
+    const auto parser = c2p::cli::Parser::constructFrom(cg, logger);
+
+    const char* const args[] = {
+        "root_cmd",    "sub_cmd", "-l",           "position1", "-n",
+        "1e3",         "-hv",     "-n",           "123",       "--input",
+        "~/input.ini", "-o",      "./output.exe", "position2",
+    };
+
+    const auto tree =
+        parser->parse(sizeof(args) / sizeof(args[0]), args, logger);
+
+    std::cout << c2p::json::dump(tree, true) << std::endl;
 }
