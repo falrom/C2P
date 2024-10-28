@@ -75,7 +75,8 @@ bool Parser::_constructFrom(
 
         if (_flagArgsNameTable.find(flagArg.name) != _flagArgsNameTable.end()) {
             logger.error(
-                commandStr + ": Flag argument name conflict: " + flagArg.name
+                commandStr + ": Flag argument name conflict: \"" + flagArg.name
+                + "\""
             );
             return false;
         }
@@ -93,8 +94,8 @@ bool Parser::_constructFrom(
                 != _flagArgsShortNameTable.end())
             {
                 logger.error(
-                    commandStr
-                    + ": Flag argument short name conflict: " + shortName
+                    commandStr + ": Flag argument short name conflict: '"
+                    + shortName + "'"
                 );
                 return false;
             }
@@ -122,10 +123,10 @@ bool Parser::_constructFrom(
         if (valueArg.defaultValue.has_value()) {
             if (valueArg.defaultValue->typeTag() != valueArg.typeTag) {
                 logger.error(
-                    commandStr
-                    + ": Default value type mismatch: " + valueArg.name
-                    + " (expected: " + to_string(valueArg.typeTag)
-                    + ", actual: " + to_string(valueArg.defaultValue->typeTag())
+                    commandStr + ": Default value type mismatch: \""
+                    + valueArg.name + "\" (expected: "
+                    + to_string(valueArg.typeTag) + ", actual: "
+                    + to_string(valueArg.defaultValue->typeTag()) + ")"
                 );
                 return false;
             }
@@ -135,7 +136,8 @@ bool Parser::_constructFrom(
             != _valueArgsNameTable.end())
         {
             logger.error(
-                commandStr + ": Value argument name conflict: " + valueArg.name
+                commandStr + ": Value argument name conflict: \""
+                + valueArg.name + "\""
             );
             return false;
         }
@@ -144,7 +146,8 @@ bool Parser::_constructFrom(
         {
             logger.error(
                 commandStr
-                + ": Value argument name conflict with flag argument: "
+                + ": Value argument name conflict with flag argument: \""
+                + valueArg.name + "\""
             );
             return false;
         }
@@ -162,8 +165,8 @@ bool Parser::_constructFrom(
                 != _valueArgsShortNameTable.end())
             {
                 logger.error(
-                    commandStr
-                    + ": Value argument short name conflict: " + shortName
+                    commandStr + ": Value argument short name conflict: '"
+                    + shortName + "'"
                 );
                 return false;
             }
@@ -174,7 +177,8 @@ bool Parser::_constructFrom(
                 logger.error(
                     commandStr
                     + ": Value argument short name conflict with flag "
-                      "argument: "
+                      "argument: '"
+                    + shortName + "'"
                 );
                 return false;
             }
@@ -189,7 +193,8 @@ bool Parser::_constructFrom(
         for (const auto& subCommand: cg.subCommands) {
             if (_subParsers.find(subCommand.command) != _subParsers.end()) {
                 logger.error(
-                    commandStr + ": Command name conflict" + subCommand.command
+                    commandStr + ": Command name conflict: \""
+                    + subCommand.command + "\""
                 );
                 return false;
             }
@@ -200,8 +205,8 @@ bool Parser::_constructFrom(
                 ))
             {
                 logger.error(
-                    commandStr
-                    + ": Failed to construct sub parser: " + subCommand.command
+                    commandStr + ": Failed to construct sub parser: \""
+                    + subCommand.command + "\""
                 );
                 return false;
             }
@@ -389,6 +394,17 @@ bool Parser::_parse(
             return subParserIter->second._parse(
                 object["subCommand"], argc - 1, argv + 1, logger
             );
+        } else {
+            // Must be a positional argument, check if it is valid.
+            // Just for better error message.
+            if (_MaxPositionalArgNum == 0) {
+                logger.error(
+                    "Invalid argument: \"" + firstArg
+                    + "\", no sub command matched and positional arguments are "
+                      "not required."
+                );
+                return false;
+            }
         }
     }
 
@@ -453,7 +469,8 @@ bool Parser::_parse(
                 ++argIdx;
                 if (argIdx >= argc) {
                     logger.error(
-                        commandStr + ": Missing value for argument: " + name
+                        commandStr + ": Missing value for argument: \"" + name
+                        + "\""
                     );
                     return false;
                 }
@@ -461,10 +478,10 @@ bool Parser::_parse(
                 ValueNode node;
                 if (!_parseValue(node, valueArg.typeTag, value, logger)) {
                     logger.error(
-                        commandStr
-                        + ": Failed to parse value for argument: " + name
-                        + " (expected type: " + to_string(valueArg.typeTag)
-                        + ", actual value: " + value
+                        commandStr + ": Failed to parse value for argument: \""
+                        + name
+                        + "\" (expected type: " + to_string(valueArg.typeTag)
+                        + ", actual value: \"" + value + "\")"
                     );
                     return false;
                 }
@@ -476,7 +493,9 @@ bool Parser::_parse(
                 continue;
             }
 
-            logger.error(commandStr + ": Unknown argument name: " + name);
+            logger.error(
+                commandStr + ": Unknown argument name: \"" + name + "\""
+            );
             return false;
         }
 
@@ -498,8 +517,8 @@ bool Parser::_parse(
                     ++argIdx;
                     if (argIdx >= argc) {
                         logger.error(
-                            commandStr
-                            + ": Missing value for argument: " + shortName
+                            commandStr + ": Missing value for argument: '"
+                            + shortName + "'"
                         );
                         return false;
                     }
@@ -508,10 +527,10 @@ bool Parser::_parse(
                     if (!_parseValue(node, valueArg.typeTag, value, logger)) {
                         logger.error(
                             commandStr
-                            + ": Failed to parse value for argument: "
+                            + ": Failed to parse value for argument: '"
                             + shortName
-                            + " (expected type: " + to_string(valueArg.typeTag)
-                            + ", actual value: " + value
+                            + "' (expected type: " + to_string(valueArg.typeTag)
+                            + ", actual value: \"" + value + "\")"
                         );
                         return false;
                     }
@@ -524,7 +543,8 @@ bool Parser::_parse(
                 }
 
                 logger.error(
-                    commandStr + ": Unknown argument short name: " + shortName
+                    commandStr + ": Unknown argument short name: '" + shortName
+                    + "'"
                 );
                 return false;
             }
@@ -538,8 +558,8 @@ bool Parser::_parse(
                         _flagArgsShortNameTable.find(shortName);
                     if (flagIter == _flagArgsShortNameTable.end()) {
                         logger.error(
-                            commandStr
-                            + ": Unknown flag argument short name: " + shortName
+                            commandStr + ": Unknown flag argument short name: '"
+                            + shortName + "' in argument: \"" + arg + "\""
                         );
                         return false;
                     }
@@ -553,18 +573,16 @@ bool Parser::_parse(
     // Check positional argument number.
     if (positionalArgs.size() < _MinPositionalArgNum) {
         logger.error(
-            commandStr
-            + ": Too few positional arguments. "
-              "(expected: >= "
-            + std::to_string(_MinPositionalArgNum) + ")"
+            commandStr + ": Too few positional arguments: "
+            + std::to_string(positionalArgs.size())
+            + " (expected: >= " + std::to_string(_MinPositionalArgNum) + ")"
         );
         return false;
     } else if (positionalArgs.size() > _MaxPositionalArgNum) {
         logger.error(
-            commandStr
-            + ": Too many positional arguments. "
-              "(expected: <= "
-            + std::to_string(_MaxPositionalArgNum) + ")"
+            commandStr + ": Too many positional arguments: "
+            + std::to_string(positionalArgs.size())
+            + " (expected: <= " + std::to_string(_MaxPositionalArgNum) + ")"
         );
         return false;
     }
@@ -585,8 +603,8 @@ bool Parser::_parse(
         } else if (valueArg.required) {
             if (valueArgs.find(valueArg.name) == valueArgs.end()) {
                 logger.error(
-                    commandStr
-                    + ": Missing required value argument: " + valueArg.name
+                    commandStr + ": Missing required value argument: \""
+                    + valueArg.name + "\""
                 );
                 return false;
             }
@@ -697,7 +715,7 @@ std::optional<std::string> Parser::getHelp(
     for (const auto& subCommand: subCommands) {
         const auto subParserIter = parser->_subParsers.find(subCommand);
         if (subParserIter == parser->_subParsers.end()) {
-            logger.error("Unknown sub command: " + subCommand);
+            logger.error("Unknown sub command: \"" + subCommand + "\"");
             return std::nullopt;
         }
         parser = &subParserIter->second;
