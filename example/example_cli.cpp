@@ -32,12 +32,17 @@ int main(int argc, char* argv[]) {
                     { .name = "list",    .shortName = 'l', .description = "List all items."           },
                 },
                 .valueArgs = {
-                    { .name = "nums",   .shortName = 'n', .typeTag = c2p::TypeTag::NUMBER, .multiple=true,   .description = "Specify a number."         },
-                    { .name = "input",  .shortName = 'i', .typeTag = c2p::TypeTag::STRING, .required = true, .description = "Specify input file path."  },
-                    { .name = "output",                   .typeTag = c2p::TypeTag::STRING,                   .description = "Specify output file path." },
+                    { .name = "nums",   .shortName = 'n', .typeTag = c2p::TypeTag::NUMBER, .multiple = true, .description = "Specify a series of numbers." },
+                    { .name = "input",  .shortName = 'i', .typeTag = c2p::TypeTag::STRING, .required = true, .description = "Specify input file path."     },
+                    { .name = "output",                   .typeTag = c2p::TypeTag::STRING,                   .description = "Specify output file path."    },
                 },
-                .MinPositionalArgNum = 2,
-                .MaxPositionalArgNum = 6,
+                .minPositionalArgNum = 2,
+                .maxPositionalArgNum = 6,
+                .positionalArgDescription = "Positional arguments are required as inputs.",
+            },
+            {
+                .command = "sub_cmd2",
+                .description = "This is another sub command.",
             },
         }
     };
@@ -45,17 +50,121 @@ int main(int argc, char* argv[]) {
 
     const auto parser = c2p::cli::Parser::constructFrom(cg, logger);
 
-    std::cout << (*(*parser).getHelp({}, true, logger)) << "\n\n";
-    std::cout << (*(*parser).getHelp({ "sub_cmd" }, true, logger)) << "\n\n";
+    // clang-format off
+    std::cout << "--------------------------------------------------------------------------------" << std::endl;
+    std::cout << (*(*parser).getHelp({},             true, logger)) << "\n";
+    std::cout << "--------------------------------------------------------------------------------" << std::endl;
+    std::cout << (*(*parser).getHelp({ "sub_cmd" },  true, logger)) << "\n";
+    std::cout << "--------------------------------------------------------------------------------" << std::endl;
+    std::cout << (*(*parser).getHelp({ "sub_cmd2" }, true, logger)) << "\n";
+    std::cout << "--------------------------------------------------------------------------------" << std::endl;
+    // clang-format on
 
     const char* const args[] = {
         "root_cmd",    "sub_cmd",  "-l",           "position1", "-n",
         "1e3",         "-hv",      "-n",           "123",       "--input",
-        "~/input.ini", "--output", "./output.exe", "position2",
+        "~/input.ini", "--output", "./output.exe", "position2", "position3",
     };
 
     const auto tree =
         parser->parse(sizeof(args) / sizeof(args[0]), args, logger);
 
-    std::cout << c2p::json::dump(tree, true) << std::endl;
+    std::cout << c2p::json::dump(tree, true, 4) << std::endl;
+
+    // clang-format off
+    // Output should be:
+    /*
+    --------------------------------------------------------------------------------
+    Usage:
+
+      root_cmd [-v] [-h]
+
+      This is a CLI parser exapmle.
+
+    Sub Commands:
+
+      sub_cmd
+        This is a sub command.
+
+      sub_cmd2
+        This is another sub command.
+
+    Flag Arguments:
+
+      -v, --version
+        Show version information.
+
+      -h, --help
+        Show help information.
+    --------------------------------------------------------------------------------
+    Usage:
+
+      root_cmd sub_cmd -i <STRING> [-n <NUMBER>] [--output <STRING>] [-v] [-h] [-l] <positionalArg0> <positionalArg1> [positionalArg2...5]
+
+      This is a sub command.
+
+    Flag Arguments:
+
+      -v, --version
+        Show version information.
+
+      -h, --help
+        Show help information.
+
+      -l, --list
+        List all items.
+
+    Required Value Arguments:
+
+      -i, --input <STRING>
+        Specify input file path.
+
+    Optional Value Arguments:
+
+      -n, --nums <NUMBER> [multiple as array]
+        Specify a series of numbers.
+
+      --output <STRING>
+        Specify output file path.
+
+    Positional Arguments:
+
+      Need 2 ~ 6 positional argument(s).
+
+      Positional arguments are required as inputs.
+    --------------------------------------------------------------------------------
+    Usage:
+
+      root_cmd sub_cmd2
+
+      This is another sub command.
+    --------------------------------------------------------------------------------
+    {
+        "command": "root_cmd",
+        "subCommand": {
+            "command": "sub_cmd",
+            "flagArgs": [
+                "list",
+                "help",
+                "version"
+            ],
+            "positionalArgs": [
+                "position1",
+                "position2",
+                "position3"
+            ],
+            "valueArgs": {
+                "input": "~/input.ini",
+                "nums": [
+                    1000,
+                    123
+                ],
+                "output": "./output.exe"
+            }
+        }
+    }
+    */
+    // clang-format on
+
+    return 0;
 }

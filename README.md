@@ -35,7 +35,7 @@ Some tools are provided for parsing inputs, such as [CLI arguments](#cli), [JSON
 > API: [ValueTree](include/c2p/value_tree.hpp)  
 > Example: [example/example_value_tree.cpp](example/example_value_tree.cpp)
 
-// TODO
+// TODO: Add more details about ValueTree.
 
 ### JSON
 
@@ -127,7 +127,57 @@ Equivalent JSON:
 
 ### CLI
 
-> API: [command-line argument parsing (TODO)](include/c2p/cli.hpp)  
-> Example: // TODO
+> API: [command-line argument parsing](include/c2p/cli.hpp)  
+> Example: [example/example_cli.cpp](example/example_cli.cpp)
 
-// TODO
+Parse CLI arguments into `ValueTree`.
+
+Support recursive nested subcommands, and three types of arguments can be used:
+
+- flag arguments
+- value arguments
+- positional arguments
+
+You need to define a `CommandGroup` first, which can help you construct a CLI parser. The construction process will check whether the configuration you defined is legal.  
+If the parser is constructed successfully, you can call the `parse` method of the parser to parse the arguments. You can also call the `getHelp` method to automatically generate a help string for interactive printing.
+
+Example:
+
+```cpp
+c2p::cli::CommandGroup cg = {
+    .command = "myprog",
+    .description = "Write the description of your program here.",
+    .flagArgs = {
+        { .name = "version", .shortName = 'v', .description = "Show version information." },
+        { .name = "help",    .shortName = 'h', .description = "Show help information."    },
+    },
+    .minPositionalArgNum = 2,
+    .maxPositionalArgNum = 6,
+};
+const auto parser = c2p::cli::Parser::constructFrom(cg);
+std::cout << (*(*parser).getHelp()) << std::endl;
+```
+
+And you will get the help string like this:
+
+```shell
+Usage:
+
+  myprog [-v] [-h] <positionalArg0> <positionalArg1> [positionalArg2...5]
+
+  Write the description of your program here.
+
+Flag Arguments:
+
+  -v, --version
+    Show version information.
+
+  -h, --help
+    Show help information.
+
+Positional Arguments:
+
+  Need 2 ~ 6 positional argument(s).
+```
+
+There is a more complete example in [example/example_cli.cpp](example/example_cli.cpp).

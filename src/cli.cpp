@@ -44,18 +44,17 @@ bool Parser::_constructFrom(
     _description = cg.description;
 
     // Check the positional argument number range.
-    if (cg.MinPositionalArgNum > cg.MaxPositionalArgNum) {
+    if (cg.minPositionalArgNum > cg.maxPositionalArgNum) {
         logger.error(
-            commandStr
-            + ": Invalid positional argument number range. "
-              "(MinPositionalArgNum="
-            + std::to_string(cg.MinPositionalArgNum) + " > MaxPositionalArgNum="
-            + std::to_string(cg.MaxPositionalArgNum) + ")"
+            commandStr + ": Invalid positional argument number range. (min="
+            + std::to_string(cg.minPositionalArgNum)
+            + " > max=" + std::to_string(cg.maxPositionalArgNum) + ")"
         );
         return false;
     }
-    _MinPositionalArgNum = cg.MinPositionalArgNum;
-    _MaxPositionalArgNum = cg.MaxPositionalArgNum;
+    _minPositionalArgNum = cg.minPositionalArgNum;
+    _maxPositionalArgNum = cg.maxPositionalArgNum;
+    _positionalArgDescription = cg.positionalArgDescription;
 
     // Record flag arguments.
     _flagArgs = cg.flagArgs;
@@ -397,7 +396,7 @@ bool Parser::_parse(
         } else {
             // Must be a positional argument, check if it is valid.
             // Just for better error message.
-            if (_MaxPositionalArgNum == 0) {
+            if (_maxPositionalArgNum == 0) {
                 logger.error(
                     "Invalid argument: \"" + firstArg
                     + "\", no sub command matched and positional arguments are "
@@ -571,18 +570,18 @@ bool Parser::_parse(
     }
 
     // Check positional argument number.
-    if (positionalArgs.size() < _MinPositionalArgNum) {
+    if (positionalArgs.size() < _minPositionalArgNum) {
         logger.error(
             commandStr + ": Too few positional arguments: "
             + std::to_string(positionalArgs.size())
-            + " (expected: >= " + std::to_string(_MinPositionalArgNum) + ")"
+            + " (expected: >= " + std::to_string(_minPositionalArgNum) + ")"
         );
         return false;
-    } else if (positionalArgs.size() > _MaxPositionalArgNum) {
+    } else if (positionalArgs.size() > _maxPositionalArgNum) {
         logger.error(
             commandStr + ": Too many positional arguments: "
             + std::to_string(positionalArgs.size())
-            + " (expected: <= " + std::to_string(_MaxPositionalArgNum) + ")"
+            + " (expected: <= " + std::to_string(_maxPositionalArgNum) + ")"
         );
         return false;
     }
@@ -653,8 +652,8 @@ Parser::_getHelp(bool enableAnsiFormat, const Logger& logger) const {
 
     std::stringstream help;
 
-    help << fmtBold << "Usage:" << fmtReset << "\n\n";
-    help << indent << commandStr;
+    help << fmtBold << "Usage:" << fmtReset;
+    help << "\n\n" << indent << commandStr;
 
     for (const auto& valueArgIdx: requiredValueArgIdxs) {
         const auto& valueArg = _valueArgs[valueArgIdx];
@@ -684,24 +683,120 @@ Parser::_getHelp(bool enableAnsiFormat, const Logger& logger) const {
         }
     }
 
-    for (size_t idx = 0; idx < _MinPositionalArgNum; ++idx) {
+    for (size_t idx = 0; idx < _minPositionalArgNum; ++idx) {
         help << " <positionalArg" << idx << ">";
     }
 
-    if (_MaxPositionalArgNum > _MinPositionalArgNum) {
+    if (_maxPositionalArgNum > _minPositionalArgNum) {
         const uint32_t leftPositionalArgNum =
-            _MaxPositionalArgNum - _MinPositionalArgNum;
+            _maxPositionalArgNum - _minPositionalArgNum;
         if (leftPositionalArgNum == 1) {
-            help << " [positionalArg" << _MinPositionalArgNum << "]";
+            help << " [positionalArg" << _minPositionalArgNum << "]";
         } else {
-            help << " [positionalArg" << _MinPositionalArgNum << "..."
-                 << (_MaxPositionalArgNum - 1) << "]";
+            help << " [positionalArg" << _minPositionalArgNum << "..."
+                 << (_maxPositionalArgNum - 1) << "]";
         }
     }
 
-    // TODO: sub commands
+    if (_description) {
+        help << "\n\n" << indent << *_description;
+    }
 
-    // TODO: descriptions
+    // Sub commands
+    if (!_subParsers.empty()) {
+        help << "\n\n" << fmtBold << "Sub Commands:" << fmtReset;
+        for (const auto& [subCommand, subParser]: _subParsers) {
+            help << "\n\n" << indent << subCommand;
+            if (subParser._description) {
+                help << "\n" << indent << indent << *subParser._description;
+            }
+        }
+    }
+
+    // Flag arguments
+    if (!_flagArgs.empty()) {
+        help << "\n\n" << fmtBold << "Flag Arguments:" << fmtReset;
+        for (const auto& flagArg: _flagArgs) {
+            help << "\n\n" << indent;
+            if (flagArg.shortName) {
+                help << "-" << *flagArg.shortName;
+                if (flagArg.name.size() > 1) {
+                    help << ", ";
+                }
+            }
+            help << "--" << flagArg.name;
+            if (flagArg.description) {
+                help << "\n" << indent << indent << *flagArg.description;
+            }
+        }
+    }
+
+    // Required value arguments
+    if (!requiredValueArgIdxs.empty()) {
+        help << "\n\n" << fmtBold << "Required Value Arguments:" << fmtReset;
+        for (const auto& valueArgIdx: requiredValueArgIdxs) {
+            const auto& valueArg = _valueArgs[valueArgIdx];
+            help << "\n\n" << indent;
+            if (valueArg.shortName) {
+                help << "-" << *valueArg.shortName;
+                if (valueArg.name.size() > 1) {
+                    help << ", ";
+                }
+            }
+            if (valueArg.name.size() > 1) {
+                help << "--" << valueArg.name;
+            }
+            help << " <" << to_string(valueArg.typeTag) << ">";
+            if (valueArg.multiple) {
+                help << " [multiple as array]";
+            }
+            if (valueArg.description) {
+                help << "\n" << indent << indent << *valueArg.description;
+            }
+        }
+    }
+
+    // Optional value arguments
+    if (!optionalValueArgIdxs.empty()) {
+        help << "\n\n" << fmtBold << "Optional Value Arguments:" << fmtReset;
+        for (const auto& valueArgIdx: optionalValueArgIdxs) {
+            const auto& valueArg = _valueArgs[valueArgIdx];
+            help << "\n\n" << indent;
+            if (valueArg.shortName) {
+                help << "-" << *valueArg.shortName;
+                if (valueArg.name.size() > 1) {
+                    help << ", ";
+                }
+            }
+            if (valueArg.name.size() > 1) {
+                help << "--" << valueArg.name;
+            }
+            help << " <" << to_string(valueArg.typeTag) << ">";
+            if (valueArg.multiple) {
+                help << " [multiple as array]";
+            }
+            if (valueArg.description) {
+                help << "\n" << indent << indent << *valueArg.description;
+            }
+        }
+    }
+
+    // Positional arguments
+    if (_maxPositionalArgNum != 0) {
+        help << "\n\n" << fmtBold << "Positional Arguments:" << fmtReset;
+        if (_minPositionalArgNum == _maxPositionalArgNum) {
+            help << "\n\n"
+                 << indent << "Need " << _minPositionalArgNum
+                 << " positional arguments.";
+        } else {
+            help << "\n\n"
+                 << indent << "Need " << _minPositionalArgNum << " ~ "
+                 << _maxPositionalArgNum << " positional argument(s).";
+        }
+        if (_positionalArgDescription) {
+            help << "\n\n" << indent << *_positionalArgDescription;
+        }
+    }
 
     return help.str();
 }

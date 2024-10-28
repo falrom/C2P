@@ -77,10 +77,10 @@ struct CommandGroup {
     std::vector<ValueArgument> valueArgs;
 
     /// Minimum allowed number of positional arguments.
-    uint32_t MinPositionalArgNum = 0;
+    uint32_t minPositionalArgNum = 0;
 
     /// Maximum allowed number of positional arguments.
-    uint32_t MaxPositionalArgNum = 0;
+    uint32_t maxPositionalArgNum = 0;
 
     /// Description of the positional arguments.
     std::optional<std::string> positionalArgDescription;
@@ -118,6 +118,14 @@ class Parser
         const Logger& logger = Logger()
     ) const;
 
+  public:
+
+    Parser(const Parser&) = default;
+    Parser(Parser&&) = default;
+    Parser& operator=(const Parser&) = default;
+    Parser& operator=(Parser&&) = default;
+    ~Parser() = default;
+
   private:
 
     std::string _command;
@@ -131,8 +139,9 @@ class Parser
     std::map<std::string, size_t> _valueArgsNameTable;
     std::map<char, size_t> _valueArgsShortNameTable;
 
-    uint32_t _MinPositionalArgNum = 0;
-    uint32_t _MaxPositionalArgNum = 0;
+    uint32_t _minPositionalArgNum = 0;
+    uint32_t _maxPositionalArgNum = 0;
+    std::optional<std::string> _positionalArgDescription;
 
     std::map<std::string, Parser> _subParsers;
 
@@ -140,16 +149,10 @@ class Parser
     /// parent commands here in hierarchical order.
     std::vector<std::string> _preCommands;
 
-  public:
-
-    Parser(const Parser&) = delete;
-    Parser(Parser&&) = default;
-    Parser& operator=(const Parser&) = delete;
-    Parser& operator=(Parser&&) = default;
-    ~Parser() = default;
-
   private:
 
+    /// Private constructor.
+    /// Use `constructFrom` function to create a parser.
     Parser() = default;
 
   private:
@@ -179,8 +182,9 @@ class Parser
     ///
     /// @return Return std::nullopt if the specified command group does not
     /// exist.
-    std::optional<std::string>
-    _getHelp(bool enableAnsiFormat = true, const Logger& logger = Logger()) const;
+    std::optional<std::string> _getHelp(
+        bool enableAnsiFormat = true, const Logger& logger = Logger()
+    ) const;
 };
 
 }  // namespace cli
