@@ -199,6 +199,7 @@ bool Parser::_constructFrom(
             }
             auto [subParserIter, _] =
                 _subParsers.insert({ subCommand.command, Parser() });
+            (void)(_); // Unused.
             if (!subParserIter->second._constructFrom(
                     subCommand, newPreCommands, logger
                 ))

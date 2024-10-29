@@ -20,7 +20,7 @@ namespace json {
 /// Extended JSON Grammar:
 /// - Allow trailing comma in arrays and objects.
 /// - Allow '+' sign for positive numbers.
-/// - Allow single-line comment starts with '//'.
+/// - Allow single-line comment starts with "//".
 ValueTree parse(const std::string& json, const Logger& logger = Logger());
 
 /// Serialize ValueTree into JSON string.

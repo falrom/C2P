@@ -35,7 +35,112 @@ Some tools are provided for parsing inputs, such as [CLI arguments](#cli), [JSON
 > API: [ValueTree](include/c2p/value_tree.hpp)  
 > Example: [example/example_value_tree.cpp](example/example_value_tree.cpp)
 
-// TODO: Add more details about ValueTree.
+A `ValueTree` represents a tree-structured data, which can recursively contain multiple child `ValueTree`s.
+
+Each `ValueTree` has 4 possible states:
+
+- `EMPTY`: Empty state, representing an empty tree with no child nodes or values. Can be implicitly recognized as `false`.
+- `VALUE`: Value state, representing a leaf node with a value.
+- `ARRAY`: Array state, representing an array node with multiple child `ValueTree`s.
+- `OBJECT`: Object state, representing an object node with multiple child `ValueTree`s, each child node has a corresponding key.
+
+A leaf node must be a value, wrapped by a `ValueNode` object. The value type of `ValueNode` can be one of the 4 types: `NONE`, `BOOL`, `NUMBER`, `STRING`.
+
+The design of the `ValueTree` class refers to the structure of JSON. For example, you can construct a `ValueTree` in the following way:
+
+```cpp
+using namespace c2p;
+
+ValueTree tree;
+
+// normal root level key-value pair
+tree["name"] = "Alice";
+tree["age"] = 20;
+tree["job"] = NONE;
+
+// object (method 1)
+tree["info"]["phone"] = "123-456-7890";
+tree["info"]["email"] = "alice@fake.com";
+
+// object (method 2)
+auto& address = tree["info"]["address"].asObject();
+address["contry"] = "USA";
+address["city"] = "New York";
+address["zip"] = 10001;
+
+// array (method 1)
+tree["family"] = ValueTree::from(std::vector{
+    "Grandpa",
+    "Grandma",
+    "Dad",
+    "Mom",
+});
+
+// array (method 2)
+auto& roommates = tree["roommates"].asArray();
+roommates = {
+    ValueNode("Bob"),
+    ValueNode("Charlie"),
+    ValueNode("David"),
+};
+roommates.emplace_back("Eve");
+roommates.emplace_back("Frank");
+```
+
+Equivalent JSON:
+```json
+{
+    "name": "Alice",
+    "age": 20,
+    "job": null,
+    "info": {
+        "phone": "123-456-7890",
+        "email": "alice@fake.com",
+        "address": {
+            "contry": "USA",
+            "city": "New York",
+            "zip": 10001
+        }
+    },
+    "family": ["Grandpa", "Grandma", "Dad", "Mom"],
+    "roommates": ["Bob", "Charlie", "David", "Eve", "Frank"]
+}
+```
+
+To read a const `ValueTree`, you can use the following methods:
+
+```cpp
+// Assume you have a const ValueTree object
+const ValueTree& constTree = tree;
+
+// specify the key path
+const auto phone = constTree.value<TypeTag::STRING>("info", "phone");
+if (phone) {
+    std::cout << "Phone: " << *phone << std::endl;
+}
+
+// the index of the array is also supported
+const auto bestFriend = constTree.value<TypeTag::STRING>("roommates", 2);
+if (bestFriend) {
+    std::cout << "Best friend: " << *bestFriend << std::endl;
+}
+
+// if you already get a leaf node, you can use `value()` directly
+const auto leaf = constTree.subTree("name");
+assert(leaf);
+assert(leaf->state() == ValueTree::State::VALUE);
+const auto name = leaf->value<TypeTag::STRING>();
+if (name) {
+    std::cout << "Name: " << *name << std::endl;
+}
+
+// Output:
+// Phone: 123-456-7890
+// Best friend: David
+// Name: Alice
+```
+
+For more information, please refer to the example: [example/example_value_tree.cpp](example/example_value_tree.cpp)
 
 ### JSON
 
@@ -47,7 +152,7 @@ Parse JSON string into `ValueTree`, or serialize `ValueTree` into JSON string.
 Extended JSON Grammar:
 - Allow trailing comma in arrays and objects.
 - Allow '+' sign for positive numbers.
-- Allow single-line comment starts with '//'.
+- Allow single-line comment starts with "//".
 
 Example:
 
@@ -104,7 +209,7 @@ empty info2 =  ; allow empty value string even without quotes
 ; comment starts with ';'
 # comment starts with '#'
 
-"" = value of empty key ; allow quoted string as empty key)
+"" = value of empty key ; allow quoted string as empty key
 ```
 
 Equivalent JSON:
@@ -151,6 +256,26 @@ c2p::cli::CommandGroup cg = {
         { .name = "version", .shortName = 'v', .description = "Show version information." },
         { .name = "help",    .shortName = 'h', .description = "Show help information."    },
     },
+    .valueArgs = {
+        {
+            .name = "width",
+            .shortName = 'w',
+            .typeTag = c2p::TypeTag::NUMBER,
+            .required = true,
+            .description = "Specify the width of the image."
+        },
+        {
+            .name = "height",
+            .typeTag = c2p::TypeTag::NUMBER,
+            .description = "Specify the height of the image."
+        },
+        {
+            .name = "output",
+            .shortName = 'o',
+            .typeTag = c2p::TypeTag::STRING,
+            .description = "Specify output file path."
+        },
+    },
     .minPositionalArgNum = 2,
     .maxPositionalArgNum = 6,
 };
@@ -163,7 +288,7 @@ And you will get the help string like this:
 ```shell
 Usage:
 
-  myprog [-v] [-h] <positionalArg0> <positionalArg1> [positionalArg2...5]
+  myprog -w <NUMBER> [--height <NUMBER>] [-o <STRING>] [-v] [-h] <positionalArg0> <positionalArg1> [positionalArg2...5]
 
   Write the description of your program here.
 
@@ -175,9 +300,48 @@ Flag Arguments:
   -h, --help
     Show help information.
 
+Required Value Arguments:
+
+  -w, --width <NUMBER>
+    Specify the width of the image.
+
+Optional Value Arguments:
+
+  --height <NUMBER>
+    Specify the height of the image.
+
+  -o, --output <STRING>
+    Specify output file path.
+
 Positional Arguments:
 
   Need 2 ~ 6 positional argument(s).
+```
+
+Assume you have the following CLI arguments:
+
+```shell
+myprog -v -w 1920 -h -o output.png input1.jpg input2.jpg
+```
+
+You can parse them into a `ValueTree` like this (print as JSON):
+
+```JSON
+{
+    "command": "myprog",
+    "flagArgs": [
+        "version",
+        "help"
+    ],
+    "positionalArgs": [
+        "input1.jpg",
+        "input2.jpg"
+    ],
+    "valueArgs": {
+        "output": "output.png",
+        "width": 1920
+    }
+}
 ```
 
 There is a more complete example in [example/example_cli.cpp](example/example_cli.cpp).
