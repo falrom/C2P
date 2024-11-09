@@ -78,27 +78,27 @@ endif()
 if( C2P_BUILD_EXAMPLES )
 
     # target: exe example_transform
-    add_executable( example_transform example/example_transform.cpp )
+    add_executable( example_transform examples/example_transform.cpp )
     list( APPEND PROJECT_TARGETS example_transform )
     target_link_libraries( example_transform PRIVATE c2p )
 
     # target: exe example_value_tree
-    add_executable( example_value_tree example/example_value_tree.cpp )
+    add_executable( example_value_tree examples/example_value_tree.cpp )
     list( APPEND PROJECT_TARGETS example_value_tree )
     target_link_libraries( example_value_tree PRIVATE c2p )
 
     # target: exe example_json
-    add_executable( example_json example/example_json.cpp )
+    add_executable( example_json examples/example_json.cpp )
     list( APPEND PROJECT_TARGETS example_json )
     target_link_libraries( example_json PRIVATE c2p )
 
     # target: exe example_ini
-    add_executable( example_ini example/example_ini.cpp )
+    add_executable( example_ini examples/example_ini.cpp )
     list( APPEND PROJECT_TARGETS example_ini )
     target_link_libraries( example_ini PRIVATE c2p )
 
     # target: exe example_cli
-    add_executable( example_cli example/example_cli.cpp )
+    add_executable( example_cli examples/example_cli.cpp )
     list( APPEND PROJECT_TARGETS example_cli )
     target_link_libraries( example_cli PRIVATE c2p )
 

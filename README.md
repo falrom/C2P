@@ -33,7 +33,7 @@ Some tools are provided for parsing inputs, such as [CLI arguments](#cli), [JSON
 ### ValueTree
 
 > API: [ValueTree](include/c2p/value_tree.hpp)  
-> Example: [example/example_value_tree.cpp](example/example_value_tree.cpp)
+> Example: [examples/example_value_tree.cpp](examples/example_value_tree.cpp)
 
 A `ValueTree` represents a tree-structured data, which can recursively contain multiple child `ValueTree`s.
 
@@ -140,12 +140,12 @@ if (name) {
 // Name: Alice
 ```
 
-For more information, please refer to the example: [example/example_value_tree.cpp](example/example_value_tree.cpp)
+For more information, please refer to the example: [examples/example_value_tree.cpp](examples/example_value_tree.cpp)
 
 ### JSON
 
 > API: [JSON serialization/deserialization](include/c2p/json.hpp)  
-> Example: [example/example_json.cpp](example/example_json.cpp)
+> Example: [examples/example_json.cpp](examples/example_json.cpp)
 
 Parse JSON string into `ValueTree`, or serialize `ValueTree` into JSON string.
 
@@ -177,7 +177,7 @@ Example:
 ### INI
 
 > API: [INI serialization/deserialization](include/c2p/ini.hpp)  
-> Example: [example/example_ini.cpp](example/example_ini.cpp)
+> Example: [examples/example_ini.cpp](examples/example_ini.cpp)
 
 Parse INI string into `ValueTree`, or serialize `ValueTree` into INI string.
 
@@ -233,7 +233,7 @@ Equivalent JSON:
 ### CLI
 
 > API: [command-line argument parsing](include/c2p/cli.hpp)  
-> Example: [example/example_cli.cpp](example/example_cli.cpp)
+> Example: [examples/example_cli.cpp](examples/example_cli.cpp)
 
 Parse CLI arguments into `ValueTree`.
 
@@ -344,4 +344,4 @@ You can parse them into a `ValueTree` like this (print as JSON):
 }
 ```
 
-There is a more complete example in [example/example_cli.cpp](example/example_cli.cpp).
+There is a more complete example in [examples/example_cli.cpp](examples/example_cli.cpp).
