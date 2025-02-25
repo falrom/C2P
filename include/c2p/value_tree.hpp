@@ -250,6 +250,53 @@ class ValueTree
 
   public:
 
+    /// Try to get stored value node.
+    /// If state of current tree is NOT State::VALUE, return nullptr.
+    inline const ValueNode* valueNode() const {
+        if (state() != State::VALUE) return nullptr;
+        return &_node;
+    }
+
+    /// Try to get stored value node at specified key.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    /// If key NOT found, return nullptr.
+    inline const ValueNode* valueNode(const std::string& key) const {
+        if (state() != State::OBJECT) return nullptr;
+        const auto it = _object.find(key);
+        if (it == _object.end()) return nullptr;
+        return it->second.valueNode();
+    }
+
+    /// Try to get stored value node at specified path.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    /// If path NOT found, return nullptr.
+    template <typename... Args>
+    const ValueNode* valueNode(const std::string& key, Args&&... args) const {
+        if (state() != State::OBJECT) return nullptr;
+        const auto it = _object.find(key);
+        if (it == _object.end()) return nullptr;
+        return it->second.valueNode(std::forward<Args>(args)...);
+    }
+
+    /// Try to get stored value node at specified index.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    /// If index NOT found, return nullptr.
+    inline const ValueNode* valueNode(size_t index) const {
+        if (state() != State::ARRAY) return nullptr;
+        if (index >= _array.size()) return nullptr;
+        return _array[index].valueNode();
+    }
+
+    /// Try to get stored value node at specified path.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    /// If path NOT found, return nullptr.
+    template <typename... Args>
+    const ValueNode* valueNode(size_t index, Args&&... args) const {
+        if (state() != State::ARRAY) return nullptr;
+        if (index >= _array.size()) return nullptr;
+        return _array[index].valueNode(std::forward<Args>(args)...);
+    }
+
     /// Try to get TypeTag of stored value.
     /// If state of current tree is NOT State::VALUE, return std::nullopt.
     std::optional<TypeTag> typeTag() const {
@@ -273,8 +320,8 @@ class ValueTree
     /// If value of found node is NOT the same as template TypeTag,
     /// return std::nullopt.
     template <TypeTag typeTag>
-    auto value(const std::string& key
-    ) const -> std::optional<typename TypeOfTag<typeTag>::type> {
+    auto value(const std::string& key) const
+        -> std::optional<typename TypeOfTag<typeTag>::type> {
         if (state() != State::OBJECT) return std::nullopt;
         const auto it = _object.find(key);
         if (it == _object.end()) return std::nullopt;
@@ -301,8 +348,8 @@ class ValueTree
     /// If value of found node is NOT the same as template TypeTag,
     /// return std::nullopt.
     template <TypeTag typeTag>
-    auto value(size_t index
-    ) const -> std::optional<typename TypeOfTag<typeTag>::type> {
+    auto value(size_t index) const
+        -> std::optional<typename TypeOfTag<typeTag>::type> {
         if (state() != State::ARRAY) return std::nullopt;
         if (index >= _array.size()) return std::nullopt;
         return _array[index].value<typeTag>();

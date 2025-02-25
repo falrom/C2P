@@ -71,27 +71,33 @@ int main(int argc, char* argv[]) {
     sensorConfig["sensor2"]["value"] = 42.0;
     std::cout << "tree: " << json::dump(tree, true, 4) << std::endl;
 
-    std::cout << "tree[sensors][sensor1][name](Should be OK): "
+    auto valueNode = tree.valueNode("sensors", "sensor1", "name");
+    std::cout
+        << "(call valueNode()) tree[sensors][sensor1][name](Should be OK): "
+        << (valueNode ? to_string(valueNode->typeTag()) : "<Not-Found>")
+        << std::endl;
+
+    std::cout << "(call value()) tree[sensors][sensor1][name](Should be OK): "
               << tree.value<TypeTag::STRING>("sensors", "sensor1", "name")
                      .value_or("<Not-Found>")
               << std::endl;
-    std::cout << "tree[sensors][sensor3][name](Key not exist): "
+    std::cout << "(call value()) tree[sensors][sensor3][name](Key not exist): "
               << tree.value<TypeTag::STRING>("sensors", "sensor3", "name")
                      .value_or("<Not-Found>")
               << std::endl;
-    std::cout << "tree[sensors][sensor1][name](Type not match): "
+    std::cout << "(call value()) tree[sensors][sensor1][name](Type not match): "
               << (tree.value<TypeTag::NUMBER>("sensors", "sensor1", "name")
                           == std::nullopt
                       ? "<Not-Found>"
                       : "<Found>")
               << std::endl;
 
-    std::cout << "tree[aaa][bbb][fff][0](Should be OK): "
+    std::cout << "(call value()) tree[aaa][bbb][fff][0](Should be OK): "
               << (tree.value<TypeTag::NONE>("aaa", "bbb", "fff", 0) == NONE
                       ? "NONE"
                       : "NOT NONE")
               << std::endl;
-    std::cout << "tree[aaa][bbb][fff][1](Type not match): "
+    std::cout << "(call value()) tree[aaa][bbb][fff][1](Type not match): "
               << (tree.value<TypeTag::NONE>("aaa", "bbb", "fff", 1) == NONE
                       ? "NONE"
                       : "NOT NONE")
