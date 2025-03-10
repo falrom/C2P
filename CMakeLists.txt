@@ -1,10 +1,10 @@
 cmake_minimum_required( VERSION 3.20 )
 
-if( "${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}" )
+if( "${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_BINARY_DIR}" )
     message( FATAL_ERROR ">>> [ERRO] In-source builds are not allowed. You should create a separate directory for build files." )
 endif()
 
-project( C2P )
+project( C2P VERSION 0.0.1 )
 
 
 # ============================================================
@@ -19,7 +19,7 @@ set( CMAKE_CXX_STANDARD_REQUIRED TRUE )
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 # whether to build examples:
-option( C2P_BUILD_EXAMPLES "Build examples" TRUE )
+option( C2P_BUILD_EXAMPLES "Build C2P examples" TRUE )
 
 # NOTE: Add other build options here.
 
@@ -30,16 +30,16 @@ option( C2P_BUILD_EXAMPLES "Build examples" TRUE )
 
 # git version tag:
 execute_process(
-    COMMAND git describe --always --tags --abbrev=8 --match "v[0-9].[0-9].[0-9]"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE PROJECT_GIT_VERSION
+    COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} describe --always --tags --abbrev=8 --match "v[0-9].[0-9].[0-9]" --dirty
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE PROJECT_GIT_COMMIT
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 # git branch name:
 execute_process(
-    COMMAND git rev-parse --abbrev-ref HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE PROJECT_GIT_BRANCH
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -56,6 +56,7 @@ set( PROJECT_TARGETS "" )
 
 # target: lib c2p
 add_library( c2p
+    src/common.cpp
     src/json.cpp
     src/ini.cpp
     src/cli.cpp
@@ -65,8 +66,11 @@ target_include_directories( c2p PUBLIC include )
 target_include_directories( c2p PRIVATE src )
 
 # version and build info:
-if( PROJECT_GIT_VERSION )
-    target_compile_definitions( c2p PRIVATE PROJECT_GIT_VERSION="${PROJECT_GIT_VERSION}" )
+if( PROJECT_VERSION )
+    target_compile_definitions( c2p PRIVATE PROJECT_VERSION="${PROJECT_VERSION}" )
+endif()
+if( PROJECT_GIT_COMMIT )
+    target_compile_definitions( c2p PRIVATE PROJECT_GIT_COMMIT="${PROJECT_GIT_COMMIT}" )
 endif()
 if( PROJECT_GIT_BRANCH )
     target_compile_definitions( c2p PRIVATE PROJECT_GIT_BRANCH="${PROJECT_GIT_BRANCH}" )
@@ -112,8 +116,11 @@ endif()
 # project version:
 message( STATUS ">>> ----------------------------------------" )
 message( STATUS ">>> [INFO] project: ${PROJECT_NAME}" )
-if( PROJECT_GIT_VERSION )
-    message( STATUS ">>> [INFO] version: ${PROJECT_GIT_VERSION}" )
+if( PROJECT_VERSION )
+    message( STATUS ">>> [INFO] version: v${PROJECT_VERSION}" )
+endif()
+if( PROJECT_GIT_COMMIT )
+    message( STATUS ">>> [INFO] commit: ${PROJECT_GIT_COMMIT}" )
 endif()
 if( PROJECT_GIT_BRANCH )
     message( STATUS ">>> [INFO] branch: ${PROJECT_GIT_BRANCH}" )
@@ -136,6 +143,7 @@ message( STATUS ">>>        CMAKE_BUILD_TYPE         : ${CMAKE_BUILD_TYPE}" )
 message( STATUS ">>>        CMAKE_CONFIGURATION_TYPES: ${CMAKE_CONFIGURATION_TYPES}" )
 message( STATUS ">>>        CMAKE_C_FLAGS            : ${CMAKE_C_FLAGS}" )
 message( STATUS ">>>        CMAKE_CXX_FLAGS          : ${CMAKE_CXX_FLAGS}" )
+message( STATUS ">>>        CMAKE_CXX_STANDARD       : ${CMAKE_CXX_STANDARD}" )
 
 # build options:
 message( STATUS ">>> [INFO] build options:" )

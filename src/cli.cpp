@@ -627,8 +627,8 @@ Parser::_getHelp(bool enableAnsiFormat, const Logger& logger) const {
 
     constexpr auto indent = "  ";
 
-    const auto fmtBold = enableAnsiFormat ? FMT_BOLD : "";
-    const auto fmtReset = enableAnsiFormat ? FMT_RESET : "";
+    const auto fmtBold = enableAnsiFormat ? ANSI_FMT_BOLD : "";
+    const auto fmtReset = enableAnsiFormat ? ANSI_FMT_RESET : "";
 
     const std::string preCommandStr = [this]() {
         std::string str;

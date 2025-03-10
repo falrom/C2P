@@ -12,24 +12,24 @@
 namespace c2p {
 
 // ANSI format escape sequences.
-#define FMT_RESET         "\033[0m"  /* Default */
-#define FMT_BOLD          "\033[1m"  /* Bold */
-#define FMT_BLACK         "\033[30m" /* Black */
-#define FMT_RED           "\033[31m" /* Red */
-#define FMT_GREEN         "\033[32m" /* Green */
-#define FMT_YELLOW        "\033[33m" /* Yellow */
-#define FMT_BLUE          "\033[34m" /* Blue */
-#define FMT_MAGENTA       "\033[35m" /* Magenta */
-#define FMT_CYAN          "\033[36m" /* Cyan */
-#define FMT_WHITE         "\033[37m" /* White */
-#define FMT_BRIGHTBLACK   "\033[90m" /* Bright Black */
-#define FMT_BRIGHTRED     "\033[91m" /* Bright Red */
-#define FMT_BRIGHTGREEN   "\033[92m" /* Bright Green */
-#define FMT_BRIGHTYELLOW  "\033[93m" /* Bright Yellow */
-#define FMT_BRIGHTBLUE    "\033[94m" /* Bright Blue */
-#define FMT_BRIGHTMAGENTA "\033[95m" /* Bright Magenta */
-#define FMT_BRIGHTCYAN    "\033[96m" /* Bright Cyan */
-#define FMT_BRIGHTWHITE   "\033[97m" /* Bright White */
+#define ANSI_FMT_RESET         "\033[0m"  /* Default */
+#define ANSI_FMT_BOLD          "\033[1m"  /* Bold */
+#define ANSI_FMT_BLACK         "\033[30m" /* Black */
+#define ANSI_FMT_RED           "\033[31m" /* Red */
+#define ANSI_FMT_GREEN         "\033[32m" /* Green */
+#define ANSI_FMT_YELLOW        "\033[33m" /* Yellow */
+#define ANSI_FMT_BLUE          "\033[34m" /* Blue */
+#define ANSI_FMT_MAGENTA       "\033[35m" /* Magenta */
+#define ANSI_FMT_CYAN          "\033[36m" /* Cyan */
+#define ANSI_FMT_WHITE         "\033[37m" /* White */
+#define ANSI_FMT_BRIGHTBLACK   "\033[90m" /* Bright Black */
+#define ANSI_FMT_BRIGHTRED     "\033[91m" /* Bright Red */
+#define ANSI_FMT_BRIGHTGREEN   "\033[92m" /* Bright Green */
+#define ANSI_FMT_BRIGHTYELLOW  "\033[93m" /* Bright Yellow */
+#define ANSI_FMT_BRIGHTBLUE    "\033[94m" /* Bright Blue */
+#define ANSI_FMT_BRIGHTMAGENTA "\033[95m" /* Bright Magenta */
+#define ANSI_FMT_BRIGHTCYAN    "\033[96m" /* Bright Cyan */
+#define ANSI_FMT_BRIGHTWHITE   "\033[97m" /* Bright White */
 
 struct Logger {
 
@@ -54,6 +54,12 @@ struct Logger {
     void info   (const std::string& logStr) const { if (logInfoCallback   ) { logInfoCallback(logStr);    } }
     // clang-format on
 };
+
+extern const std::string ProjectVersion;
+extern const std::string ProjectGitCommit;
+extern const std::string ProjectGitBranch;
+extern const std::string ProjectCmakeTime;
+extern const std::string ProjectBuildTime;
 
 }  // namespace c2p
 

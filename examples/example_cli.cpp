@@ -14,6 +14,12 @@ const c2p::Logger logger{
 
 int main(int argc, char* argv[]) {
 
+    logger.info(std::string("Project Version: v") + c2p::ProjectVersion);
+    logger.info(std::string("Project Git Commit: ") + c2p::ProjectGitCommit);
+    logger.info(std::string("Project Git Branch: ") + c2p::ProjectGitBranch);
+    logger.info(std::string("Project CMake Time: ") + c2p::ProjectCmakeTime);
+    logger.info(std::string("Project Build Time: ") + c2p::ProjectBuildTime);
+
     // clang-format off
     c2p::cli::CommandGroup cg = {
         .command = "root_cmd",
