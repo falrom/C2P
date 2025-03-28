@@ -3,7 +3,7 @@
 C++ 配置转参数工具包。  
 User configurations to program parameters tools.
 
-Parse user inputs (e.g. [CLI arguments](#cli), [JSON](#json), [INI](#ini), etc.) to configuration struct, then generate program parameters.
+Parse user inputs (e.g. [CLI arguments](#cli), [JSON](#json), [INI](#ini), etc.) to *configuration struct*, then generate *program parameters*.
 
 ```
 [DefaultValues] --parse-> [ValueTree] \                    [Rules]
@@ -15,38 +15,37 @@ Parse user inputs (e.g. [CLI arguments](#cli), [JSON](#json), [INI](#ini), etc.)
 
 ## Transform from Config to Param with Rules
 
-Generally, `Config` should be defined in a human-friendly format, while `Param` needs to be closer to the program's input requirements. Defining `Param` as a cached data type that the program can directly work with (avoiding redundant checks and type conversions) also helps improve performance. The bridge that connects the two is the `Rule`s.
+Generally, ***Config*** should be defined in a human-friendly format, while ***Param*** needs to be closer to the program's input requirements. Defining ***Param*** as a cached data type that the program can directly work with (avoiding redundant checks and type conversions) also helps improve performance. The bridge that connects the two is the ***Rule***s.
 
-Define your own `Config` and `Param` types separately. Then, create a set of `Rule`s to:
+Define your own ***Config*** and ***Param*** types separately. Then, create a set of ***Rule***s to:
 
-- Handle part of the conversion from `Config` to `Param`.
+- Handle part of the conversion from ***Config*** to ***Param***.
 - Perform input validation and report errors if requirements are not met.
 
-Finally, call the transform function to apply these `Rule`s.
+Finally, call the *transform function* to apply these ***Rule***s.
 
 ## Parsing Config from IO
 
-We treat various user inputs as the source and parse them into a common intermediate [ValueTree](#valuetree) (composed of multiple `ValueNode`s). After that, you can define the conversion from `ValueTree` to `Config` as well as override rules for different input methods.
+We treat various user inputs as the source and parse them into a common intermediate [ValueTree](#valuetree) (composed of multiple ***ValueNode***s). After that, you can define the conversion from ***ValueTree*** to ***Config*** as well as override rules for different input methods.
 
-Some tools are provided for parsing inputs, such as [CLI arguments](#cli), [JSON](#json), [INI](#ini), etc. All of these produce a `ValueTree` as the output.
+Some tools are provided for parsing inputs, such as [CLI arguments](#cli), [JSON](#json), [INI](#ini), etc. All of these produce a ***ValueTree*** as the output.
 
 ### ValueTree
 
 > API: [ValueTree](include/c2p/value_tree.hpp)  
 > Example: [examples/example_value_tree.cpp](examples/example_value_tree.cpp)
 
-A `ValueTree` represents a tree-structured data, which can recursively contain multiple child `ValueTree`s.
+A ***ValueTree*** represents a tree-structured data, which can recursively contain multiple child ***ValueTree***s (or called subtrees).
 
-Each `ValueTree` has 4 possible states:
+Each ***ValueTree*** has 4 possible states:
 
-- `EMPTY`: Empty state, representing an empty tree with no child nodes or values. Can be implicitly recognized as `false`.
-- `VALUE`: Value state, representing a leaf node with a value.
-- `ARRAY`: Array state, representing an array node with multiple child `ValueTree`s.
-- `OBJECT`: Object state, representing an object node with multiple child `ValueTree`s, each child node has a corresponding key.
+- `EMPTY`: Representing an empty tree with no value or child nodes. Can be implicitly recognized as *false*.
+- `ARRAY`: Representing an array node with several child ***ValueTree***s.
+- `OBJECT`: Representing an object node with several child ***ValueTree***s, each child node has a corresponding key.
+- `VALUE`: Representing a leaf node with a value, wrapped by a ***ValueNode*** object, which must be one of the following 4 types:
+  - `NONE`, `BOOL`, `NUMBER`, `STRING`.
 
-A leaf node must be a value, wrapped by a `ValueNode` object. The value type of `ValueNode` can be one of the 4 types: `NONE`, `BOOL`, `NUMBER`, `STRING`.
-
-The design of the `ValueTree` class refers to the structure of JSON. For example, you can construct a `ValueTree` in the following way:
+Obviously, the design of the ***ValueTree*** class refers to the structure of JSON. For example, you can construct a ***ValueTree*** in the following way:
 
 ```cpp
 using namespace c2p;
@@ -107,7 +106,7 @@ Equivalent JSON:
 }
 ```
 
-To read a const `ValueTree`, you can use the following methods:
+To read a const ***ValueTree***, you can use the following methods:
 
 ```cpp
 // Assume you have a const ValueTree object
@@ -147,7 +146,7 @@ For more information, please refer to the example: [examples/example_value_tree.
 > API: [JSON serialization/deserialization](include/c2p/json.hpp)  
 > Example: [examples/example_json.cpp](examples/example_json.cpp)
 
-Parse JSON string into `ValueTree`, or serialize `ValueTree` into JSON string.
+Parse JSON string into ***ValueTree***, or serialize ***ValueTree*** into JSON string.
 
 Extended JSON Grammar:
 - Allow trailing comma in arrays and objects.
@@ -179,7 +178,7 @@ Example:
 > API: [INI serialization/deserialization](include/c2p/ini.hpp)  
 > Example: [examples/example_ini.cpp](examples/example_ini.cpp)
 
-Parse INI string into `ValueTree`, or serialize `ValueTree` into INI string.
+Parse INI string into ***ValueTree***, or serialize ***ValueTree*** into INI string.
 
 Extended INI Grammar:
 - Allow single-line comments starting with ';' or '#'.
@@ -235,7 +234,7 @@ Equivalent JSON:
 > API: [command-line argument parsing](include/c2p/cli.hpp)  
 > Example: [examples/example_cli.cpp](examples/example_cli.cpp)
 
-Parse CLI arguments into `ValueTree`.
+Parse CLI arguments into ***ValueTree***.
 
 Support recursive nested subcommands, and three types of arguments can be used:
 
@@ -324,7 +323,7 @@ Assume you have the following CLI arguments:
 myprog -v -w 1920 -h -o output.png input1.jpg input2.jpg
 ```
 
-You can parse them into a `ValueTree` like this (print as JSON):
+You can parse them into a ***ValueTree*** like this (print as JSON):
 
 ```JSON
 {
