@@ -189,7 +189,6 @@ static std::optional<std::string> _parseNoQuotedHeaderString(
 ) {
     assert(pos.valid);
     assert(!std::isspace(uint8_t(ctx.text[pos.pos])));
-    assert(!ctx.atLineEnd(pos));
 
     const auto startPos = pos;
 
@@ -231,7 +230,6 @@ static std::optional<std::string> _parseNoQuotedKeyString(
 ) {
     assert(pos.valid);
     assert(!std::isspace(uint8_t(ctx.text[pos.pos])));
-    assert(!ctx.atLineEnd(pos));
 
     const auto startPos = pos;
 
@@ -285,18 +283,28 @@ static std::optional<std::string> _parseNoQuotedValueString(
     while (true) {
         if (ctx.text[pos.pos] == ';' || ctx.text[pos.pos] == '#') break;
         if (std::isspace(uint8_t(ctx.text[pos.pos]))) {
+            // including line break
             if (whitespaceStartPos.pos == startPos.pos) {
                 whitespaceStartPos = pos;
             }
         } else {
             whitespaceStartPos = startPos;
         }
-        if (!ctx.moveForwardInLine(pos)) break;
+        if (!ctx.moveForwardInLine(pos)) {
+            if (whitespaceStartPos.pos == startPos.pos) {
+                // at line end, but not line break
+                whitespaceStartPos = pos;
+                whitespaceStartPos.valid = false;
+            }
+            break;
+        }
     }
 
     return std::string(ctx.slice(
         startPos,
-        whitespaceStartPos.pos == startPos.pos ? pos : whitespaceStartPos
+        (whitespaceStartPos.valid && whitespaceStartPos.pos == startPos.pos)
+            ? pos
+            : whitespaceStartPos
     ));
 }
 
@@ -305,7 +313,6 @@ static std::optional<std::string> _parseSectionHeader(
 ) {
     assert(pos.valid);
     assert(ctx.text[pos.pos] == '[');
-    assert(!ctx.atLineEnd(pos));
 
     const auto leftBracketPos = pos;
 
@@ -380,7 +387,6 @@ static std::optional<std::pair<std::string, std::string>>
 _parseEntry(const TextContext& ctx, PositionInText& pos, const Logger& logger) {
     assert(pos.valid);
     assert(!std::isspace(uint8_t(ctx.text[pos.pos])));
-    assert(!ctx.atLineEnd(pos));
 
     const auto keyStartPos = pos;
     std::optional<std::string> key;
@@ -409,7 +415,11 @@ _parseEntry(const TextContext& ctx, PositionInText& pos, const Logger& logger) {
         }
     }
 
-    ctx.moveForwardInLine(pos);  // Skip equal sign
+    // Skip equal sign
+    if (!ctx.moveForwardInLine(pos)) {
+        // Empty value
+        return std::make_pair(*key, std::string(""));
+    }
 
     _skipWhitespaceInLine(ctx, pos);
     if (ctx.atLineEnd(pos) && std::isspace(uint8_t(ctx.text[pos.pos]))) {
@@ -465,7 +475,8 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
 #endif
 
         _skipWhitespaceInLine(ctx, pos);
-        if (ctx.atLineEnd(pos)) continue;
+        if (ctx.atLineEnd(pos) && std::isspace(uint8_t(ctx.text[pos.pos])))
+            continue;
 
         const auto lineStartPos = pos;
         if (ctx.text[pos.pos] == '[') {
@@ -477,6 +488,7 @@ ValueTree parse(const std::string& ini, const Logger& logger) {
                 return ValueTree();
             }
             section = &(tree[*header]);
+            section->asObject();
         } else {
             auto entry = _parseEntry(ctx, pos, logger);
             if (!entry) {
