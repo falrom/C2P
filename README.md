@@ -45,7 +45,22 @@ Each ***ValueTree*** has 4 possible states:
 - `VALUE`: Representing a leaf node with a value, wrapped by a ***ValueNode*** object, which must be one of the following 4 types:
   - `NONE`, `BOOL`, `NUMBER`, `STRING`.
 
-Obviously, the design of the ***ValueTree*** class refers to the structure of JSON. For example, you can construct a ***ValueTree*** in the following way:
+Obviously, the design of the ***ValueTree*** class refers to the structure of JSON.
+
+Addressing and assignment APIs of ***ValueTree***:
+
+- [READ] To *get the subtree* under a path, use `subTree({path})` function.
+- [READ] To *get the value node object* under a path, use `valueNode({path})` function.
+- [READ] To *get the value* under a path, use `value<TypeTag>({path})` function.
+- [WRITE] To *set the value* under a path, use `operator[]({path})` function.
+
+Tree node state APIs of ***ValueTree***:
+
+- [READ] To *check the state*, use `isXxx()` functions: `isEmpty()`, `isValue()`, `isArray()`, `isObject()`
+- [READ] To *get the node object*, use `getXxx()` functions: `getValue()`, `getArray()`, `getObject()`
+- [WRITE] To *set the state*, use `asXxx()` functions: `clear()`, `asValue()`, `asArray()`, `asObject()`
+
+For example, you can construct a ***ValueTree*** in the following way:
 
 ```cpp
 using namespace c2p;
@@ -126,17 +141,32 @@ if (bestFriend) {
 
 // if you already get a leaf node, you can use `value()` directly
 const auto leaf = constTree.subTree("name");
-assert(leaf);
-assert(leaf->state() == ValueTree::State::VALUE);
+assert(leaf && leaf->isValue());
 const auto name = leaf->value<TypeTag::STRING>();
 if (name) {
     std::cout << "Name: " << *name << std::endl;
+}
+
+// traverse an array:
+const auto array = constTree.subTree("roommates");
+if (array && array->isArray()) {
+    std::cout << "Roommates: " << std::endl;
+    for (const auto& roommate: *array->getArray()) {
+        assert(roommate->isValue() && roommate->getValue()->isString());
+        std::cout << "- " << *roommate.value<TypeTag::STRING>() << std::endl;
+    }
 }
 
 // Output:
 // Phone: 123-456-7890
 // Best friend: David
 // Name: Alice
+// Roommates:
+// - Bob
+// - Charlie
+// - David
+// - Eve
+// - Frank
 ```
 
 For more information, please refer to the example: [examples/example_value_tree.cpp](examples/example_value_tree.cpp)

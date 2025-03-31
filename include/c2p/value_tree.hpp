@@ -504,6 +504,17 @@ class ValueTree
     TreeObject _object = {};
 };
 
+/// Convert ValueTree::State to string.
+inline std::string to_string(ValueTree::State state) {
+    switch (state) {
+        case ValueTree::State::EMPTY: return "EMPTY";
+        case ValueTree::State::VALUE: return "VALUE";
+        case ValueTree::State::ARRAY: return "ARRAY";
+        case ValueTree::State::OBJECT: return "OBJECT";
+        default: return "UNKNOWN";
+    }
+}
+
 }  // namespace c2p
 
 #endif  // __C2P_VALUE_TREE_HPP__

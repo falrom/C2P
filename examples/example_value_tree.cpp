@@ -98,6 +98,16 @@ int main(int argc, char* argv[]) {
                       : "<Found>")
               << std::endl;
 
+    auto subTreeArray = tree.subTree("aaa", "bbb", "fff");
+    if (subTreeArray) {
+        std::cout << "Found subtree: tree[aaa][bbb][fff], state: "
+                  << to_string(subTreeArray->state()) << ", isArray: "
+                  << (subTreeArray->isArray() ? "true" : "false") << std::endl;
+        for (const auto& item: *subTreeArray->getArray()) {
+            std::cout << "- " << to_string(item.state()) << std::endl;
+        }
+    }
+
     std::cout << "(call value()) tree[aaa][bbb][fff][0](Should be OK): "
               << (tree.value<TypeTag::NONE>("aaa", "bbb", "fff", 0) == NONE
                       ? "NONE"
@@ -109,9 +119,9 @@ int main(int argc, char* argv[]) {
                       : "NOT NONE")
               << std::endl;
 
-    auto subTree = tree.subTree("aaa", "bbb", "fff", 1);
+    auto subTree = tree.subTree("aaa", "bbb", "fff", 2);
     if (subTree) {
-        std::cout << "Found subtree: tree[aaa][bbb][fff][1], state: "
-                  << int(subTree->state()) << std::endl;
+        std::cout << "Found subtree: tree[aaa][bbb][fff][2], state: "
+                  << to_string(subTree->state()) << std::endl;
     }
 }
