@@ -50,7 +50,6 @@ Obviously, the design of the ***ValueTree*** class refers to the structure of JS
 Addressing and assignment APIs of ***ValueTree***:
 
 - [READ] To *get the subtree* under a path, use `subTree({path})` function.
-- [READ] To *get the value node object* under a path, use `valueNode({path})` function.
 - [READ] To *get the value* under a path, use `value<TypeTag>({path})` function.
 - [WRITE] To *set the value* under a path, use `operator[]({path})` function.
 

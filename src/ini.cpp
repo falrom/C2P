@@ -598,7 +598,7 @@ std::string dump(const ValueTree& tree) {
     std::stringstream stream;
 
     const auto& object = *tree.getObject();
-    std::map<std::string, const TreeObject*> sections;
+    std::map<std::string, const ObjectNode*> sections;
 
     // dump global entries & collect sections
     for (const auto& [key, value]: object) {

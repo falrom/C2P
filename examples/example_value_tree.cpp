@@ -77,12 +77,6 @@ int main(int argc, char* argv[]) {
     sensorConfig["sensor2"]["value"] = 42.0;
     std::cout << "tree: " << json::dump(tree, true, 4) << std::endl;
 
-    auto valueNode = tree.valueNode("sensors", "sensor1", "name");
-    std::cout
-        << "(call valueNode()) tree[sensors][sensor1][name](Should be OK): "
-        << (valueNode ? to_string(valueNode->typeTag()) : "<Not-Found>")
-        << std::endl;
-
     std::cout << "(call value()) tree[sensors][sensor1][name](Should be OK): "
               << tree.value<TypeTag::STRING>("sensors", "sensor1", "name")
                      .value_or("<Not-Found>")
