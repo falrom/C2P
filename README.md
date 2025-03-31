@@ -102,6 +102,7 @@ roommates.emplace_back("Frank");
 ```
 
 Equivalent JSON:
+
 ```json
 {
     "name": "Alice",
@@ -124,8 +125,27 @@ Equivalent JSON:
 To read a const ***ValueTree***, you can use the following methods:
 
 ```cpp
+using namespace c2p;
+
 // Assume you have a const ValueTree object
-const ValueTree& constTree = tree;
+const ValueTree& constTree = json::parse(R"(
+{
+"name": "Alice",
+"age": 20,
+"job": null,
+"info": {
+"phone": "123-456-7890",
+"email": "alice@fake.com",
+"address": {
+    "contry": "USA",
+    "city": "New York",
+    "zip": 10001
+}
+},
+"family": ["Grandpa", "Grandma", "Dad", "Mom"],
+"roommates": ["Bob", "Charlie", "David", "Eve", "Frank"]
+}
+)");
 
 // specify the key path
 const auto phone = constTree.value<TypeTag::STRING>("info", "phone");
@@ -148,25 +168,24 @@ if (name) {
 }
 
 // traverse an array:
-const auto array = constTree.subTree("roommates");
-if (array && array->isArray()) {
-    std::cout << "Roommates: " << std::endl;
-    for (const auto& roommate: *array->getArray()) {
-        assert(roommate->isValue() && roommate->getValue()->isString());
+const auto family = constTree.subTree("family");
+if (family && family->isArray()) {
+    std::cout << "Family: " << std::endl;
+    for (const auto& roommate: *family->getArray()) {
+        assert(roommate.isValue() && roommate.getValue()->isString());
         std::cout << "- " << *roommate.value<TypeTag::STRING>() << std::endl;
     }
 }
 
-// Output:
+// ## Output:
 // Phone: 123-456-7890
 // Best friend: David
 // Name: Alice
-// Roommates:
-// - Bob
-// - Charlie
-// - David
-// - Eve
-// - Frank
+// Family: 
+// - Grandpa
+// - Grandma
+// - Dad
+// - Mom
 ```
 
 For more information, please refer to the example: [examples/example_value_tree.cpp](examples/example_value_tree.cpp)
@@ -242,6 +261,7 @@ empty info2 =  ; allow empty value string even without quotes
 ```
 
 Equivalent JSON:
+
 ```json
 {
     "name": "John Doe",
