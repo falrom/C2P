@@ -37,27 +37,39 @@ Some tools are provided for parsing inputs, such as [CLI arguments](#cli), [JSON
 
 A ***ValueTree*** represents a tree-structured data, which can recursively contain multiple child ***ValueTree***s (or called subtrees).
 
-Each ***ValueTree*** has 4 possible states:
+Each ***ValueTree*** has 4 possible node states:
 
 - `EMPTY`: Representing an empty tree with no value or child nodes. Can be implicitly recognized as *false*.
-- `ARRAY`: Representing an array node with several child ***ValueTree***s.
-- `OBJECT`: Representing an object node with several child ***ValueTree***s, each child node has a corresponding key.
-- `VALUE`: Representing a leaf node with a value, wrapped by a ***ValueNode*** object, which must be one of the following 4 types:
-  - `NONE`, `BOOL`, `NUMBER`, `STRING`.
+- `ARRAY`: Representing an ***ArrayNode*** with several child ***ValueTree***s.
+- `OBJECT`: Representing an ***ObjectNode*** with several child ***ValueTree***s, each child has a corresponding key.
+- `VALUE`: Representing a leaf node with a value, wrapped by a ***ValueNode*** object, which must be one of the following 4 types: `NONE`, `BOOL`, `NUMBER`, `STRING`.
 
 Obviously, the design of the ***ValueTree*** class refers to the structure of JSON.
+
+Node APIs of ***ValueTree***:
+
+- [READ] To *get the state*, use `isXxx()` functions: `state()`, `isEmpty()`, `isValue()`, `isArray()`, `isObject()`
+- [WRITE] To *set the state*, use `asXxx()` functions: `clear()`, `asValue()`, `asArray()`, `asObject()`
+- [READ] To *get the node object*, use `getXxx()` functions: `getValue()`, `getArray()`, `getObject()`
+- [READ] To *get the value*, use `value<TypeTag>()` function.
 
 Addressing and assignment APIs of ***ValueTree***:
 
 - [READ] To *get the subtree* under a path, use `subTree({path})` function.
+- [WRITE] To *set the subtree* under a path, use `operator[]({path})` function.
+- [READ] To *get the node object* under a path, use `getXxx({path})` functions: `getValue({path})`, `getArray({path})`, `getObject({path})`
 - [READ] To *get the value* under a path, use `value<TypeTag>({path})` function.
-- [WRITE] To *set the value* under a path, use `operator[]({path})` function.
 
-Tree node state APIs of ***ValueTree***:
+It can be seen that ***ValueTree*** provides multiple levels of APIs. Some non-rigorous formulas:
 
-- [READ] To *check the state*, use `isXxx()` functions: `isEmpty()`, `isValue()`, `isArray()`, `isObject()`
-- [READ] To *get the node object*, use `getXxx()` functions: `getValue()`, `getArray()`, `getObject()`
-- [WRITE] To *set the state*, use `asXxx()` functions: `clear()`, `asValue()`, `asArray()`, `asObject()`
+```
+getValue({path}) ≈ subTree({path}) + getValue()
+```
+
+```
+value<TypeTag>({path}) ≈ getValue({path}) + value<TypeTag>()
+                       ≈ subTree({path}) + getValue() + value<TypeTag>()
+```
 
 For example, you can construct a ***ValueTree*** in the following way:
 
@@ -127,24 +139,22 @@ To read a const ***ValueTree***, you can use the following methods:
 using namespace c2p;
 
 // Assume you have a const ValueTree object
-const ValueTree& constTree = json::parse(R"(
-{
-"name": "Alice",
-"age": 20,
-"job": null,
-"info": {
-"phone": "123-456-7890",
-"email": "alice@fake.com",
-"address": {
-    "contry": "USA",
-    "city": "New York",
-    "zip": 10001
-}
-},
-"family": ["Grandpa", "Grandma", "Dad", "Mom"],
-"roommates": ["Bob", "Charlie", "David", "Eve", "Frank"]
-}
-)");
+const ValueTree& constTree = json::parse(R"({
+    "name": "Alice",
+    "age": 20,
+    "job": null,
+    "info": {
+        "phone": "123-456-7890",
+        "email": "alice@fake.com",
+        "address": {
+            "contry": "USA",
+            "city": "New York",
+            "zip": 10001
+        }
+    },
+    "family": ["Grandpa", "Grandma", "Dad", "Mom"],
+    "roommates": ["Bob", "Charlie", "David", "Eve", "Frank"]
+})");
 
 // specify the key path
 const auto phone = constTree.value<TypeTag::STRING>("info", "phone");
@@ -167,10 +177,10 @@ if (name) {
 }
 
 // traverse an array:
-const auto family = constTree.subTree("family");
-if (family && family->isArray()) {
-    std::cout << "Family: " << std::endl;
-    for (const auto& roommate: *family->getArray()) {
+const auto family = constTree.getArray("family");
+if (family) {
+    std::cout << "Family:" << std::endl;
+    for (const auto& roommate: *family) {
         assert(roommate.isValue() && roommate.getValue()->isString());
         std::cout << "- " << *roommate.value<TypeTag::STRING>() << std::endl;
     }
@@ -180,7 +190,7 @@ if (family && family->isArray()) {
 // Phone: 123-456-7890
 // Best friend: David
 // Name: Alice
-// Family: 
+// Family:
 // - Grandpa
 // - Grandma
 // - Dad

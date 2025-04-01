@@ -147,14 +147,6 @@ class ValueTree
     /// Get the state of the ValueTree root.
     State state() const { return _state; }
 
-    /// Clear the tree to an empty state.
-    void clear() {
-        _state = State::EMPTY;
-        _value_node = NONE;
-        _array_node.clear();
-        _object_node.clear();
-    }
-
     /// Return false if is an empty tree.
     operator bool() const { return state() != State::EMPTY; }
 
@@ -172,43 +164,13 @@ class ValueTree
 
   public:
 
-    /// Get ValueNode pointer.
-    /// If state of current tree is NOT State::VALUE, return nullptr.
-    ValueNode* getValue() {
-        return (state() == State::VALUE) ? &_value_node : nullptr;
+    /// Clear the tree to an empty state.
+    void clear() {
+        _state = State::EMPTY;
+        _value_node = NONE;
+        _array_node.clear();
+        _object_node.clear();
     }
-
-    /// Get ValueNode pointer.
-    /// If state of current tree is NOT State::VALUE, return nullptr.
-    const ValueNode* getValue() const {
-        return (state() == State::VALUE) ? &_value_node : nullptr;
-    }
-
-    /// Get ArrayNode pointer.
-    /// If state of current tree is NOT State::ARRAY, return nullptr.
-    ArrayNode* getArray() {
-        return (state() == State::ARRAY) ? &_array_node : nullptr;
-    }
-
-    /// Get ArrayNode pointer.
-    /// If state of current tree is NOT State::ARRAY, return nullptr.
-    const ArrayNode* getArray() const {
-        return (state() == State::ARRAY) ? &_array_node : nullptr;
-    }
-
-    /// Get ObjectNode pointer.
-    /// If state of current tree is NOT State::OBJECT, return nullptr.
-    ObjectNode* getObject() {
-        return (state() == State::OBJECT) ? &_object_node : nullptr;
-    }
-
-    /// Get ObjectNode pointer.
-    /// If state of current tree is NOT State::OBJECT, return nullptr.
-    const ObjectNode* getObject() const {
-        return (state() == State::OBJECT) ? &_object_node : nullptr;
-    }
-
-  public:
 
     /// Get ValueNode reference.
     /// If current tree root is NOT a value, change it to ValueNode(NONE).
@@ -334,6 +296,110 @@ class ValueTree
 
   public:
 
+    /// Try to get ValueNode pointer.
+    /// If state of current tree is NOT State::VALUE, return nullptr.
+    ValueNode* getValue() {
+        return (state() == State::VALUE) ? &_value_node : nullptr;
+    }
+
+    /// Try to get ValueNode pointer.
+    /// If state of current tree is NOT State::VALUE, return nullptr.
+    const ValueNode* getValue() const {
+        return (state() == State::VALUE) ? &_value_node : nullptr;
+    }
+
+    /// Try to get ValueNode pointer at specified path.
+    /// If path NOT found, return nullptr.
+    /// If state of found tree is NOT State::VALUE, return nullptr.
+    /// return nullptr.
+    template <typename... Args>
+    ValueNode* getValue(Args&&... args) {
+        auto tree = subTree(std::forward<Args>(args)...);
+        if (!tree) return nullptr;
+        return tree->getValue();
+    }
+
+    /// Try to get ValueNode pointer at specified path.
+    /// If path NOT found, return nullptr.
+    /// If state of found tree is NOT State::VALUE, return nullptr.
+    /// return nullptr.
+    template <typename... Args>
+    const ValueNode* getValue(Args&&... args) const {
+        auto tree = subTree(std::forward<Args>(args)...);
+        if (!tree) return nullptr;
+        return tree->getValue();
+    }
+
+    /// Try to get ArrayNode pointer.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    ArrayNode* getArray() {
+        return (state() == State::ARRAY) ? &_array_node : nullptr;
+    }
+
+    /// Try to get ArrayNode pointer.
+    /// If state of current tree is NOT State::ARRAY, return nullptr.
+    const ArrayNode* getArray() const {
+        return (state() == State::ARRAY) ? &_array_node : nullptr;
+    }
+
+    /// Try to get ArrayNode pointer at specified path.
+    /// If path NOT found, return nullptr.
+    /// If state of found tree is NOT State::ARRAY, return nullptr.
+    /// return nullptr.
+    template <typename... Args>
+    ArrayNode* getArray(Args&&... args) {
+        auto tree = subTree(std::forward<Args>(args)...);
+        if (!tree) return nullptr;
+        return tree->getArray();
+    }
+
+    /// Try to get ArrayNode pointer at specified path.
+    /// If path NOT found, return nullptr.
+    /// If state of found tree is NOT State::ARRAY, return nullptr.
+    /// return nullptr.
+    template <typename... Args>
+    const ArrayNode* getArray(Args&&... args) const {
+        auto tree = subTree(std::forward<Args>(args)...);
+        if (!tree) return nullptr;
+        return tree->getArray();
+    }
+
+    /// Try to get ObjectNode pointer.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    ObjectNode* getObject() {
+        return (state() == State::OBJECT) ? &_object_node : nullptr;
+    }
+
+    /// Try to get ObjectNode pointer.
+    /// If state of current tree is NOT State::OBJECT, return nullptr.
+    const ObjectNode* getObject() const {
+        return (state() == State::OBJECT) ? &_object_node : nullptr;
+    }
+
+    /// Try to get ObjectNode pointer at specified path.
+    /// If path NOT found, return nullptr.
+    /// If state of found tree is NOT State::OBJECT, return nullptr.
+    /// return nullptr.
+    template <typename... Args>
+    ObjectNode* getObject(Args&&... args) {
+        auto tree = subTree(std::forward<Args>(args)...);
+        if (!tree) return nullptr;
+        return tree->getObject();
+    }
+
+    /// Try to get ObjectNode pointer at specified path.
+    /// If path NOT found, return nullptr.
+    /// If state of found tree is NOT State::OBJECT, return nullptr.
+    /// return nullptr.
+    template <typename... Args>
+    const ObjectNode* getObject(Args&&... args) const {
+        auto tree = subTree(std::forward<Args>(args)...);
+        if (!tree) return nullptr;
+        return tree->getObject();
+    }
+
+  public:
+
     /// Try to get stored value.
     /// If state of current tree is NOT State::VALUE, return std::nullopt.
     /// If value of current node is NOT the same as template TypeTag,
@@ -344,58 +410,17 @@ class ValueTree
         return _value_node.value<typeTag>();
     }
 
-    /// Try to get stored value at specified key.
-    /// If state of current tree is NOT State::OBJECT, return std::nullopt.
-    /// If key NOT found, return std::nullopt.
-    /// If value of found node is NOT the same as template TypeTag,
-    /// return std::nullopt.
-    template <TypeTag typeTag>
-    auto value(const std::string& key) const
-        -> std::optional<typename TypeOfTag<typeTag>::type> {
-        if (state() != State::OBJECT) return std::nullopt;
-        const auto it = _object_node.find(key);
-        if (it == _object_node.end()) return std::nullopt;
-        return it->second.value<typeTag>();
-    }
-
     /// Try to get stored value at specified path.
-    /// If state of current tree is NOT State::OBJECT, return std::nullopt.
     /// If path NOT found, return std::nullopt.
+    /// If state of found tree is NOT State::VALUE, return std::nullopt.
     /// If value of found node is NOT the same as template TypeTag,
     /// return std::nullopt.
     template <TypeTag typeTag, typename... Args>
-    auto value(const std::string& key, Args&&... args) const
+    auto value(Args&&... args) const
         -> std::optional<typename TypeOfTag<typeTag>::type> {
-        if (state() != State::OBJECT) return std::nullopt;
-        const auto it = _object_node.find(key);
-        if (it == _object_node.end()) return std::nullopt;
-        return it->second.value<typeTag>(std::forward<Args>(args)...);
-    }
-
-    /// Try to get stored value at specified index.
-    /// If state of current tree is NOT State::ARRAY, return std::nullopt.
-    /// If index NOT found, return std::nullopt.
-    /// If value of found node is NOT the same as template TypeTag,
-    /// return std::nullopt.
-    template <TypeTag typeTag>
-    auto value(size_t index) const
-        -> std::optional<typename TypeOfTag<typeTag>::type> {
-        if (state() != State::ARRAY) return std::nullopt;
-        if (index >= _array_node.size()) return std::nullopt;
-        return _array_node[index].value<typeTag>();
-    }
-
-    /// Try to get stored value at specified path.
-    /// If state of current tree is NOT State::ARRAY, return std::nullopt.
-    /// If path NOT found, return std::nullopt.
-    /// If value of found node is NOT the same as template TypeTag,
-    /// return std::nullopt.
-    template <TypeTag typeTag, typename... Args>
-    auto value(size_t index, Args&&... args) const
-        -> std::optional<typename TypeOfTag<typeTag>::type> {
-        if (state() != State::ARRAY) return std::nullopt;
-        if (index >= _array_node.size()) return std::nullopt;
-        return _array_node[index].value<typeTag>(std::forward<Args>(args)...);
+        auto tree = subTree(std::forward<Args>(args)...);
+        if (!tree) return std::nullopt;
+        return tree->template value<typeTag>();
     }
 
   public:
